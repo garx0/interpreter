@@ -206,6 +206,8 @@ class Scanner {
 	bool stateInit(char c);
 	bool stateNum(char c);
 	bool stateIdent(char c);
+	bool stateCmpAss(char c);
+	bool stateNE(char c);
 	bool stateFin(char c);
 public:
 	explicit Scanner(istream& a_input): input(a_input) {}
@@ -261,29 +263,29 @@ bool Scanner::stateInit(char c)
 			break;
 		case '\n':
 			break;
-		case '+': 
-			curLex = { Lex::DIVISOR, string{c} };
-			lexIsRead = true;
-			break;
-		case '-':
-			curLex = { Lex::DIVISOR, string{c} };
-			lexIsRead = true;
-			break;
-		case '*':
-			curLex = { Lex::DIVISOR, string{c} };
-			lexIsRead = true;
-			break;
-		case '/':
-			curLex = { Lex::DIVISOR, string{c} };
-			lexIsRead = true;
-			break;
+		case '{':
+		case '}':
 		case '(':
+		case ')':
+		case ',':
+		case ';':
+		case '+':
+		case '-':
+		case '*':
+		case '/':
+		case '%':
 			curLex = { Lex::DIVISOR, string{c} };
 			lexIsRead = true;
 			break;
-		case ')':
-			curLex = { Lex::DIVISOR, string{c} };
-			lexIsRead = true;
+		case '<':
+		case '>':
+		case '=':
+			buf.push_back(c);
+			state = &Scanner::stateCmpAss;
+			break;
+		case '!':
+			buf.push_back(c);
+			state = &Scanner::stateNE;
 			break;
 		default:
 			cout << "***" << __LINE__ << endl; //DEBUG
@@ -294,13 +296,14 @@ bool Scanner::stateInit(char c)
 }
 
 bool Scanner::stateNum(char c)
+//V переименовать состояние и разветвить на два (для инта и рила)
+//переход в рил, если увидим точку
 {
 	cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
 	if( isDigit(c) ) {
 		buf.push_back(c);
 	} else {
 		input.unget();
-		//cout << "ungetted\n"; //DEBUG
 		int value = stoi(buf);
 		curLex = {Lex::CONST_INT, value};
 		lexIsRead = true;
@@ -325,6 +328,35 @@ bool Scanner::stateIdent(char c)
 	return true;
 }
 
+bool Scanner::stateCmpAss(char c)
+{
+	if(c == '=') {
+		buf.push_back(c);
+	} else {
+		input.unget();
+	}
+	curLex = {Lex::DIVISOR, buf};
+	buf.clear();
+	state = &Scanner::stateInit;
+	lexIsRead = true;
+	return true;
+}
+
+bool Scanner::stateNE(char c)
+{
+	if(c == '=') {
+		buf.push_back(c);
+		curLex = {Lex::DIVISOR, buf};
+		buf.clear();
+		state = &Scanner::stateInit;
+		lexIsRead = true;
+		return true;
+	} else {
+		buf.clear();
+		return false;
+	}
+}
+
 int main() {
 	Scanner scanner(cin);
 	cout << "***" << __LINE__ << endl; //DEBUG
@@ -339,9 +371,13 @@ int main() {
 		}
 		lexemes.push_back( scanner.getCurLex() );
 	}
-	for(auto& item : lexemes) {
-		//cout << item.getType() << "; " << item.getValue() << endl;
-		cout << item << endl;
+	if(scanner.lexIsRead_()) {	
+		for(auto& item : lexemes) {
+			//cout << item.getType() << "; " << item.getValue() << endl;
+			cout << item << endl;
+		}
+	} else {
+		cout << "lexical error" << endl;
 	}
 }
 
