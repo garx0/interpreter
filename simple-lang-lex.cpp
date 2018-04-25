@@ -115,7 +115,7 @@ public:
 		IDENT,			//3
 		CONST_INT,		//4
 		CONST_REAL,		//5
-		CONST_STRING,	//6
+		CONST_STRING	//6
 	};
 private:
 	Type type;
