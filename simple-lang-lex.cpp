@@ -220,6 +220,10 @@ class Scanner {
 	bool stateCmpAss(char c);
 	bool stateNE(char c);
 	bool stateStr(char c);
+	bool stateStrEsc(char c);
+	bool stateSlash(char c);
+	bool stateComment(char c);
+	bool stateCommentAst(char c);
 	bool stateErr(char c);
 	// означает, что автомат встретил лекс. ошибку и больше не будет
 	//   читать лексемы
@@ -229,6 +233,11 @@ class Scanner {
 		m_ready = true;
 		m_lexIsRead = true;
 		state = &Scanner::stateInit;
+	}
+	void unget() {
+		if(!m_eof) {
+			input.unget();
+		}
 	}
 public:
 	explicit Scanner(istream& a_input): input(a_input) {}
@@ -314,7 +323,6 @@ bool Scanner::stateInit(char c)
 		case '+':
 		case '-':
 		case '*':
-		case '/':
 		case '%':
 			curLex = { Lex::DIVISOR, string{c} };
 			prepare();
@@ -336,6 +344,9 @@ bool Scanner::stateInit(char c)
 		case '"':
 			state = &Scanner::stateStr;
 			break;
+		case '/':
+			state = &Scanner::stateSlash;
+			break;
 		default:
 			cout << "***" << __LINE__ << endl; //DEBUG
 			state = &Scanner::stateErr;
@@ -356,9 +367,7 @@ bool Scanner::stateInt(char c)
 		buf.push_back(c);
 		state = &Scanner::stateReal;
 	} else {
-		if(!m_eof) {
-			input.unget();
-		}
+		unget();
 		int value = stoi(buf);
 		curLex = {Lex::CONST_INT, value};
 		cout << "***" << __LINE__ << endl; //DEBUG
@@ -373,9 +382,7 @@ bool Scanner::stateReal(char c)
 	if( isDigit(c) ) {
 		buf.push_back(c);
 	} else {
-		if(!m_eof) {
-			input.unget();
-		}
+		unget();
 		if(buf.back() == '.') {
 			buf.clear();
 			state = &Scanner::stateErr;
@@ -395,9 +402,7 @@ bool Scanner::stateIdent(char c)
 	if( isDigit(c) || isLetter(c) ) {
 		buf.push_back(c);
 	} else {
-		if(!m_eof) {
-			input.unget();
-		}
+		unget();
 		curLex = {buf};
 		cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
@@ -450,12 +455,87 @@ bool Scanner::stateStr(char c)
 			state = &Scanner::stateErr;
 			return false;
 		//V экранирование
+		case '\\':
+			state = &Scanner::stateStrEsc;
+			return true;
 		default:
 			buf.push_back(c);
 			break;
 	}
 			
 }
+
+bool Scanner::stateStrEsc(char c)
+{
+	switch(c) {
+		case '\"':
+		case '\\':
+			buf.push_back(c);
+			state = &Scanner::stateStr;
+			break;
+		case 'n':
+			buf.push_back('\n');
+			state = &Scanner::stateStr;
+			break;
+		case 't':
+			buf.push_back('\t');
+			state = &Scanner::stateStr;
+			break;
+		case 'b':
+			buf.push_back('\b');
+			//V проверить так ли работает
+			state = &Scanner::stateStr;
+			break;
+		case '0':
+			buf.push_back('\0');
+			//V проверить так ли работает
+			state = &Scanner::stateStr;
+			break;
+		default:
+			buf.clear();
+			state = &Scanner::stateErr;
+			return false;
+	}
+	return true;
+}
+
+bool Scanner::stateSlash(char c)
+{
+	if(c == '*') {
+		state = &Scanner::stateComment;
+	} else {
+		unget();
+		curLex = {Lex::DIVISOR, "/"};
+		prepare();
+	}
+}
+
+bool Scanner::stateComment(char c)
+{
+	if(m_eof) {
+		state = &Scanner::stateErr;
+		return false;
+	}
+	if(c == '*') {
+		state = &Scanner::stateCommentAst;
+	}
+	return true;
+}
+
+bool Scanner::stateCommentAst(char c)
+{
+	if(m_eof) {
+		state = &Scanner::stateErr;
+		return false;
+	}
+	if(c == '/') {
+		state = &Scanner::stateInit;
+	} else {
+		state = &Scanner::stateComment;
+	}
+	return true;
+}
+
 bool Scanner::stateErr(char c) 
 {
 	return false;
