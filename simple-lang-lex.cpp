@@ -115,7 +115,7 @@ public:
 		IDENT,			//3
 		CONST_INT,		//4
 		CONST_REAL,		//5
-		CONST_STRING	//6
+		CONST_STRING,	//6
 	};
 private:
 	Type type;
@@ -219,6 +219,7 @@ class Scanner {
 	bool stateIdent(char c);
 	bool stateCmpAss(char c);
 	bool stateNE(char c);
+	bool stateStr(char c);
 	bool stateErr(char c);
 	// означает, что автомат встретил лекс. ошибку и больше не будет
 	//   читать лексемы
@@ -332,6 +333,9 @@ bool Scanner::stateInit(char c)
 			buf.push_back(c);
 			state = &Scanner::stateReal;
 			break;
+		case '"':
+			state = &Scanner::stateStr;
+			break;
 		default:
 			cout << "***" << __LINE__ << endl; //DEBUG
 			state = &Scanner::stateErr;
@@ -433,6 +437,25 @@ bool Scanner::stateNE(char c)
 	}
 }
 
+bool Scanner::stateStr(char c)
+{
+	switch(c) {
+		case '"':
+			curLex = {Lex::CONST_STRING, buf};
+			cout << "***" << __LINE__ << endl; //DEBUG
+			prepare();
+			return true;
+		case '\n':
+			buf.clear();
+			state = &Scanner::stateErr;
+			return false;
+		//V экранирование
+		default:
+			buf.push_back(c);
+			break;
+	}
+			
+}
 bool Scanner::stateErr(char c) 
 {
 	return false;
