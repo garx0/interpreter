@@ -157,7 +157,8 @@ public:
 		IDENT,			//3
 		CONST_INT,		//4
 		CONST_REAL,		//5
-		CONST_STRING	//6
+		CONST_STRING,	//6
+		END				//7
 	};
 private:
 	Type type;
@@ -237,9 +238,22 @@ public:
 		}
 		return stream;
 	}
-	Type getType() { return type; }
-	int getValue() { return value; }
-	double getRealValue() { return realValue; }
+	bool operator==(const Lex& lex) const {
+		if(type != lex.type)
+			return false;
+		if(type == Lex::END)
+			return true;
+		if(type == Lex::CONST_REAL)
+			return realValue == lex.realValue;
+		else
+			return value == lex.value;
+	}
+	bool operator!=(const Lex& lex) const {
+		return !(*this == lex);
+	}
+	Type getType() const { return type; }
+	int getValue() const { return value; }
+	double getRealValue() const { return realValue; }
 };
 
 class Scanner {
@@ -285,6 +299,7 @@ public:
 	explicit Scanner(istream& a_input): input(a_input) {}
 	bool readLex();
 	Lex getCurLex() const { return curLex; }
+	bool lexAnalysis(vector<Lex>& lexemes);
 	bool ready() const { return (state == &Scanner::stateInit); }
 	bool lexIsRead() const { return m_lexIsRead; }
 	bool eof() const { return m_eof; }
@@ -343,6 +358,27 @@ bool Scanner::readLex()
 	}
 }
 
+bool Scanner::lexAnalysis(vector<Lex>& lexemes) {
+	cout << "***" << __LINE__ << endl; //DEBUG
+	while(1) {
+		cout << endl << endl; //DEBUG
+		cout << "***" << __LINE__ << endl; //DEBUG
+		readLex();
+		cout << "***" << __LINE__ << endl; //DEBUG
+		assert( ready() || err() );
+		if( err() ) {
+			break;
+		}
+		if( lexIsRead() ) {
+			lexemes.push_back( getCurLex() );
+		}
+		if( eof() ) {
+			break;
+		}
+	}
+	return ( !err() );
+}
+
 bool Scanner::stateInit(char c)
 {
 	cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
@@ -355,6 +391,7 @@ bool Scanner::stateInit(char c)
 	} else switch(c) {
 		case ' ':
 		case '\n':
+		case '\t':
 			break;
 		case '{':
 		case '}':
@@ -583,28 +620,231 @@ bool Scanner::stateErr(char c)
 	return false;
 }
 
+
+//~ class Parser {
+	//~ Scanner scanner;
+	//~ Lex curLex;
+	//~ //bool analyse();
+	//~ void ntProgram();
+	//~ void ntMulDescr();
+	//~ void ntDescr();
+	//~ void ntType();
+	//~ void ntVar();
+	//~ void ntConst();
+	//~ void ntInt();
+	//~ void ntReal();
+	//~ void ntSign();
+	//~ void ntString();
+	//~ void ntMulOper();
+	//~ void ntOper();
+	//~ void ntComplOper();
+	//~ void ntExprOper();
+	//~ void ntExpr();
+//~ public:
+	//~ void readLex() {
+		//~ bool test = scanner.readLex();
+		//~ if( scanner.err() )
+			//~ throw scanner.getCurLex();
+		//~ if( scanner.lexIsRead() )
+			//~ curLex = scanner.getCurLex();
+		//~ else
+			//~ curLex = Lex::END;
+	//~ }
+	//~ void assertLex(bool statement) {
+	//~ /* стандартная конструкция, повторяющаяся много раз в
+	 //~ * процедурах, соотв. нетерминалам
+	 //~ */
+		//~ if(statement)
+			//~ readLex();
+		//~ else
+			//~ throw curLex;
+	//~ }
+//~ };
+
+//~ void Parser::ntProgram()
+//~ {
+	//~ assertLex(curLex == Lex(Lex::KEYWORD, twNames::PROGRAM));
+	//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::OP_BRACE));
+	//~ ntMulDescr();
+	//~ ntMulOper();
+	//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::CL_BRACE));
+	//~ if(curLex != Lex::END)
+		//~ throw curLex;
+//~ }
+
+//~ //любая процедура nt... проверяет на собственную "конструкцию", и
+//~ //после ее выполнения curLex равен первой лексеме после этой конструкции
+
+//~ bool isTypename(const Lex& lex) {
+	//~ if(lex.getType() != Lex::KEYWORD)
+		//~ return false;
+	//~ switch(lex.getValue()) {
+		//~ case twNames::INT: 
+		//~ case twNames::REAL:
+		//~ case twNames::STRING:
+			//~ return true;
+		//~ default:
+			//~ return false;
+	//~ }
+//~ }
+
+//~ bool isConst(const Lex& lex) {
+	//~ switch(lex.getType()) {
+		//~ case Lex::CONST_INT:
+		//~ case Lex::CONST_REAL:
+		//~ case Lex::CONST_STRING:
+			//~ return true;
+		//~ default:
+			//~ return false;
+	//~ }
+//~ }
+
+//~ bool isSign(const Lex& lex) {
+	//~ if(lex.getType() != Lex::DIVISOR)
+		//~ return false;
+	//~ switch(lex.getValue()) {
+		//~ case tdNames::PLUS:
+		//~ case tdNames::MINUS:
+			//~ return true;
+		//~ default:
+			//~ return false;
+	//~ }
+//~ }
+
+//~ void Parser::ntMulDescr()
+//~ {
+	//~ while(isTypename(curLex)) {
+		//~ ntDescr();
+		//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::SEMICOLON));
+	//~ }
+//~ }
+
+//~ void Parser::ntDescr()
+//~ {
+	//~ ntType();
+	//~ ntVar();
+	//~ Lex semicolon(Lex::DIVISOR, tdNames::SEMICOLON);
+	//~ while(curLex == semicolon) {
+		//~ readLex();
+		//~ ntVar();
+	//~ }
+//~ }
+
+//~ void Parser::ntType()
+//~ {
+	//~ assertLex(isTypename(curLex));
+//~ }
+
+//~ void Parser::ntVar() 
+//~ //исп. только для объявления переменной
+//~ //для остальных целей используется лексема-идентификатор
+//~ {
+	//~ assertLex(curLex.getType() == Lex::IDENT);
+	//~ if(curLex == Lex(Lex::DIVISOR, tdNames::ASSIGN)) {
+		//~ readLex();
+		//~ ntConst();
+	//~ }
+//~ }
+
+//~ void Parser::ntConst()
+//~ {
+	//~ if(isSign(curLex)) {
+		//~ readLex();
+		//~ switch(curLex.getType()) {
+			//~ case Lex::CONST_INT:
+				//~ readLex();
+				//~ break;
+			//~ case Lex::CONST_REAL:
+				//~ readLex();
+				//~ break;
+			//~ default:
+				//~ throw curLex;
+		//~ }
+	//~ } else if(curLex.getType() == Lex::CONST_STRING)
+		//~ readLex();
+	//~ else
+		//~ throw curLex;
+		
+//~ }
+
+//~ void Parser::ntMulOper()
+//~ {
+	//~ //потом
+//~ }
+
+//~ void Parser::ntOper()
+//~ {
+	//~ switch(curLex) {
+		//~ case Lex(Lex::KEYWORD, twNames::IF):
+			//~ readLex();
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::OP_PAREN));
+			//~ ntExpr();
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::CL_PAREN));	
+			//~ ntOper();
+			//~ assertLex(curLex == Lex(Lex::KEYWORD, twNames::ELSE));
+			//~ ntOper();
+			//~ break;
+		//~ case Lex(Lex::KEYWORD, twNames::WHILE):
+			//~ readLex();
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::OP_PAREN));
+			//~ ntExpr();
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::CL_PAREN));
+			//~ ntOper();
+			//~ break;
+		//~ case Lex(Lex::KEYWORD, twNames::READ):
+			//~ readLex();
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::OP_PAREN));
+			//~ assertLex(curLex.getType() == Lex::IDENT));
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::CL_PAREN));
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::SEMICOLON));
+			//~ break;
+		//~ case Lex(Lex::KEYWORD, twNames::WRITE):
+			//~ readLex;
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::OP_PAREN));
+			//~ ntExpr();
+			//~ while(curLex == Lex(Lex::DIVISOR, tdNames::COMMA)) {
+				//~ readLex();
+				//~ ntExpr();
+			//~ }
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::CL_PAREN));
+			//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::SEMICOLON));
+			//~ break;
+		//~ case Lex(Lex::DIVISOR, tdNames::OP_BRACE):
+			//~ ntComplOper();
+			//~ break;
+		//~ default:
+			//~ if(curLex.getType() == Lex::IDENT)
+				//~ ntExprOper();
+			//~ else
+				//~ throw curLex;
+			//~ break;
+	//~ }
+//~ }
+
+//~ void Parser::ntComplOper()
+//~ {
+	//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::OP_BRACE));
+	//~ ntMulOper();
+	//~ assertLex(curLex == Lex(Lex::DIVISOR, tdNames::CL_BRACE));
+//~ }
+
+//~ void Parser::ntExprOper()
+//~ {
+	//~ ntExpr();
+//~ }
+
+//~ void Parser::ntExpr()
+//~ {
+	
+//~ }
+
 int main() {
 	Scanner scanner(cin);
 	cout << "***" << __LINE__ << endl; //DEBUG
 	vector<Lex> lexemes;
-	while(1) {
-		cout << endl << endl; //DEBUG
-		cout << "***" << __LINE__ << endl; //DEBUG
-		scanner.readLex();
-		cout << "***" << __LINE__ << endl; //DEBUG
-		assert( scanner.ready() ||
-			scanner.err() );
-		if( scanner.err() ) {
-			break;
-		}
-		if( scanner.lexIsRead() ) {
-			lexemes.push_back( scanner.getCurLex() );
-		}
-		if( scanner.eof() ) {
-			break;
-		}
-	}
-	if( !scanner.err() ) {	
+	bool test;
+	test = scanner.lexAnalysis(lexemes);
+	if( test ) {	
 		assert( scanner.ready() ||
 			scanner.err() );
 		for(auto& item : lexemes) {
@@ -612,6 +852,10 @@ int main() {
 			cout << item << endl;
 		}
 	} else {
+		string str;
+		while( getline(cin, str) ) {
+			str.clear();
+		}
 		cout << "lex. error" << endl;
 	}
 }
