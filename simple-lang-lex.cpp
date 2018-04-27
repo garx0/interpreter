@@ -102,6 +102,48 @@ Table<string> td {
 	"="		//18
 };
 
+namespace twNames {
+	enum names {
+		NULL_WORD	= 0,
+		PROGRAM		= 1,
+		INT			= 2,
+		STRING		= 3,
+		REAL		= 4,
+		NOT			= 5,
+		AND			= 6,
+		OR			= 7,
+		IF			= 8,
+		ELSE		= 9,
+		DO			= 10,
+		WHILE		= 11,
+		BREAK		= 12
+	};
+}
+
+namespace tdNames {
+	enum names {
+		NULL_DIVISOR	= 0,
+		OP_BRACE		= 1,
+		CL_BRACE		= 2,
+		OP_PAREN		= 3,
+		CL_PAREN		= 4,
+		COMMA			= 5,
+		SEMICOLON		= 6,
+		PLUS			= 7,
+		MINUS			= 8,
+		MUL				= 9,
+		DIV				= 10,
+		MOD				= 11,
+		LT				= 12,
+		GT				= 13,
+		LE				= 14,
+		GE				= 15,
+		EQ				= 16,
+		NE				= 17,
+		ASSIGN			= 18
+	};
+}
+
 Table<string> tableIdent;
 Table<string> tableStr;
 	
