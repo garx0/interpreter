@@ -1,0 +1,17 @@
+program {
+	int i = 123, j = 5;
+	string str = "my\tstring\n", str2 = "\"string\\2\"";
+	string str3;
+	string str4 = "\\\\\\\n";
+	real r = .75, pi = 3.1415;
+	while(i < 126 and 2 == 2 or not 1) {
+		if(j <= 0) j = 0 - j;
+		write(i, " ", j);
+		i = i + 1;
+		j = j - 2;
+	}
+	write(str1);
+	write("\n");
+	write(str2);
+	write("\n");
+}

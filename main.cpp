@@ -37,7 +37,7 @@ public:
 	//если такого элемента нет в таблице, он заносится в таблицу;
 	//в любом случае, возвращается номер элемента в таблице
 	{
-		cout << "PUT: " << '"' << elem << '"' << endl; //DEBUG
+		//~ cout << "PUT: " << '"' << elem << '"' << endl; //DEBUG
 		typename vector<T>::const_iterator res = 
 			std::find(contents.begin() + 1, contents.end(), elem);
 		int num = res - contents.begin();
@@ -52,7 +52,7 @@ public:
 	//возвращает номер элемента в таблице;
 	//если не найден, то 0
 	{
-		cout << "FIND: " << '"' << elem << '"' << endl; //DEBUG
+		//~ cout << "FIND: " << '"' << elem << '"' << endl; //DEBUG
 		typename vector<T>::const_iterator res = std::find(contents.begin() + 1, contents.end(), elem);
 		//cout << "res == " << (res - contents.begin()) << endl; //DEBUG
 		//cout << "res == end(): " << (res == contents.end()) << endl; //DEBUG
@@ -233,7 +233,7 @@ public:
 				}
 		}
 		stream << " {" << (int) lexem.type << ", " << lexem.value <<
-			", " << lexem.realValue << "}" << endl;
+			", " << lexem.realValue << "}";
 		return stream;
 	}
 	
@@ -314,7 +314,7 @@ bool Scanner::readLex()
 	if(m_eof) {
 		return false;
 	}
-	cout << "***" << __LINE__ << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << endl; //DEBUG
 	if( err() ) {
 		m_lexIsRead = false;
 		return false;
@@ -324,12 +324,12 @@ bool Scanner::readLex()
 	bool test;
 	m_lexIsRead = false;
 	while(1) {
-		cout << endl; //DEBUG
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		if( input.get(c) ) {
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 		} else {
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			c = '\n';
 			m_eof = true;
 			// если поток закончился, "скармливаем" автомату
@@ -339,35 +339,35 @@ bool Scanner::readLex()
 			// но если произошла эта ветвь, автомат при этом не будет
 			// делать unget, т.к. символ '\n', данный ему, не из input
 		}
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		test = (this->*state) (c);
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		if( err() ) {
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			return false;
 		}
 		
-		cout << "from readlex: lexIsRead = " << m_lexIsRead << endl; //DEBUG
+		//~ cout << "from readlex: lexIsRead = " << m_lexIsRead << endl; //DEBUG
 		if(m_lexIsRead) {
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			return true;
 		}
 		if(m_eof) {
 			assert( ready() );
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			return false;
 		}
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 	}
 }
 
 bool Scanner::lexAnalysis(vector<Lex>& lexemes) {
-	cout << "***" << __LINE__ << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << endl; //DEBUG
 	while(1) {
-		cout << endl << endl; //DEBUG
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//cout << endl << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		readLex();
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		assert( ready() || err() );
 		if( err() ) {
 			break;
@@ -384,7 +384,7 @@ bool Scanner::lexAnalysis(vector<Lex>& lexemes) {
 
 bool Scanner::stateInit(char c)
 {
-	cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
 	if( isLetter(c) ) {
 		buf.push_back(c);
 		state = &Scanner::stateIdent;
@@ -430,11 +430,11 @@ bool Scanner::stateInit(char c)
 			state = &Scanner::stateSlash;
 			break;
 		default:
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			state = &Scanner::stateErr;
 			return false;
 	}
-	cout << "***" << __LINE__ << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << endl; //DEBUG
 	return true;
 }
 
@@ -442,7 +442,7 @@ bool Scanner::stateInt(char c)
 //V переименовать состояние и разветвить на два (для инта и рила)
 //переход в рил, если увидим точку
 {
-	cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
 	if( isDigit(c) ) {
 		buf.push_back(c);
 	} else if(c == '.') {
@@ -452,7 +452,7 @@ bool Scanner::stateInt(char c)
 		unget();
 		int value = stoi(buf);
 		curLex = {Lex::CONST_INT, value};
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 	}
 	return true;
@@ -460,7 +460,7 @@ bool Scanner::stateInt(char c)
 
 bool Scanner::stateReal(char c)
 {
-	cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
 	if( isDigit(c) ) {
 		buf.push_back(c);
 	} else {
@@ -472,7 +472,7 @@ bool Scanner::stateReal(char c)
 		}
 		double value = stod(buf);
 		curLex = {Lex::CONST_REAL, 0, value};
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 	}
 	return true;
@@ -480,13 +480,13 @@ bool Scanner::stateReal(char c)
 
 bool Scanner::stateIdent(char c)
 {
-	cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
 	if( isDigit(c) || isLetter(c) ) {
 		buf.push_back(c);
 	} else {
 		unget();
 		curLex = {buf};
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 	}
 	return true;
@@ -494,7 +494,7 @@ bool Scanner::stateIdent(char c)
 
 bool Scanner::stateCmpAss(char c)
 {
-	cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
 	if(c == '=') {
 		buf.push_back(c);
 	} else {
@@ -503,18 +503,18 @@ bool Scanner::stateCmpAss(char c)
 		}
 	}
 	curLex = {buf};
-	cout << "***" << __LINE__ << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << endl; //DEBUG
 	prepare();
 	return true;
 }
 
 bool Scanner::stateNE(char c)
 {
-	cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
 	if(c == '=') {
 		buf.push_back(c);
 		curLex = {Lex::NE};
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 		return true;
 	} else {
@@ -529,7 +529,7 @@ bool Scanner::stateStr(char c)
 	switch(c) {
 		case '"':
 			curLex = {Lex::CONST_STRING, buf};
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			prepare();
 			return true;
 		case '\n':
@@ -625,9 +625,8 @@ bool Scanner::stateErr(char c)
 
 class Parser {
 	Scanner scanner;
-	Lex curLex;
-	Lex::Type curType;
-	//bool analyse();
+	Lex curLex = Lex::LEX_NULL;
+	Lex::Type curType = Lex::LEX_NULL;
 	void ntProgram();
 	void ntMulDescr();
 	void ntDescr();
@@ -639,30 +638,66 @@ class Parser {
 	void ntComplOper();
 	void ntExprOper();
 	void ntExpr();
+	void ntExpr5();
+	void ntExpr4();
+	void ntExpr3();
+	void ntExpr2();
+	void ntExpr1();
+	void ntOperand();
+	int indentation = -1; //DEBUG
 public:
+	Parser(istream& stream): scanner(stream) {}
+	bool syntaxAnalysis();
 	void readLex() {
 		bool test = scanner.readLex();
 		if( scanner.err() )
 			throw scanner.getCurLex();
-		if( scanner.lexIsRead() )
+		if( scanner.lexIsRead() ) {
 			curLex = scanner.getCurLex();
-		else
-			curLex = Lex::END;
+			cout << "\t\t\t\t\tlexRead: " << curLex << endl; //DEBUG
+		} else {
+			cout << "\t\t\t\t\tlexIsntRead" << endl; //DEBUG
+			curLex = Lex::END;	
+		}
 		curType = curLex.getType();
 	}
-	void assertLex(bool lexType) {
+	void assertLex(Lex::Type lexType) {
 	/* стандартная конструкция, повторяющаяся много раз в
 	 * процедурах, соотв. нетерминалам
 	 */
-		if(curType == lexType)
+		//~ cout << curType << " == " << lexType << ": " << (curType == lexType) << endl; //DEBUG
+		if(curType == lexType) {
+			//~ cout << "(+) assertLex of type = " << lexType << endl; //DEBUG
 			readLex();
-		else
+		} else {
+			//~ cout << "(-) assertLex" << endl; //DEBUG
 			throw curLex;
+		}
 	}
 };
 
+bool Parser::syntaxAnalysis()
+{
+	try {
+		readLex();
+		ntProgram();
+		return true;
+	}
+	catch(const Lex& lex) {
+		cout << "syntax error: at lexem " << lex << endl;
+		return false;
+	}
+}
+
 void Parser::ntProgram()
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	assertLex(Lex::PROGRAM);
 	assertLex(Lex::OP_BRACE);
 	ntMulDescr();
@@ -670,6 +705,13 @@ void Parser::ntProgram()
 	assertLex(Lex::CL_BRACE);
 	if(curType != Lex::END)
 		throw curLex;
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
 }
 
 //любая процедура nt... проверяет на собственную "конструкцию", и
@@ -680,55 +722,113 @@ bool isTypename(Lex::Type lexType) {
 		lexType == Lex::STRING;
 }
 
-bool isConst(Lex::Type lexType) {
-	return lexType == Lex::CONST_INT || lexType == Lex::CONST_REAL ||
-		lexType == Lex::CONST_STRING;
-}
-
 bool isSign(Lex::Type lexType) {
 	return lexType == Lex::PLUS || lexType == Lex::MINUS;
 }
 
 void Parser::ntMulDescr()
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	while(isTypename(curType)) {
 		ntDescr();
 		assertLex(Lex::SEMICOLON);
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
 	}
 }
 
 void Parser::ntDescr()
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	ntType();
 	ntVar();
-	while(curType == Lex::SEMICOLON) {
+	while(curType == Lex::COMMA) {
 		readLex();
 		ntVar();
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
 	}
 }
 
 void Parser::ntType()
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	if(isTypename(curType))
 		readLex();
 	else
 		throw curLex;
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
 }
 
 void Parser::ntVar() 
 //исп. только для объявления переменной
 //для остальных целей используется лексема-идентификатор
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	assertLex(Lex::IDENT);
 	if(curType == Lex::ASSIGN) {
 		readLex();
 		ntConst();
 	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
 }
 
 void Parser::ntConst()
 {
-	if(isSign(curType)) {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
+	if(curType == Lex::PLUS || curType == Lex::MINUS) {
 		readLex();
 		switch(curType) {
 			case Lex::CONST_INT:
@@ -740,25 +840,61 @@ void Parser::ntConst()
 			default:
 				throw curLex;
 		}
-	} else if(curType == Lex::CONST_STRING)
-		readLex();
-	else
-		throw curLex;
-		
+	} else switch(curType) {
+		case Lex::CONST_INT:
+			readLex();
+			break;
+		case Lex::CONST_REAL:
+			readLex();
+			break;
+		case Lex::CONST_STRING:
+			readLex();
+			break;
+		default:
+			throw curLex;
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
 }
 
 void Parser::ntMulOper()
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	while(curType == Lex::IF || curType == Lex::WHILE || 
 		curType == Lex::DO || curType == Lex::BREAK || 
 		curType == Lex::READ || curType == Lex::WRITE || 
 		curType == Lex::OP_BRACE || curType == Lex::IDENT) {
 		ntOper();
 	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
 }
 
 void Parser::ntOper() //V do-while и if без else реализовать!
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	switch(curType) {
 		case Lex::IF:
 			readLex();
@@ -814,31 +950,237 @@ void Parser::ntOper() //V do-while и if без else реализовать!
 			break;
 		case Lex::IDENT:
 			ntExprOper();
+			break;
 		default:
 			throw curLex;
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
 	}
 }
 
 void Parser::ntComplOper()
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	assertLex(Lex::OP_BRACE);
 	ntMulOper();
 	assertLex(Lex::CL_BRACE);
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
 }
 
 void Parser::ntExprOper()
 {
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
 	ntExpr();
+	assertLex(Lex::SEMICOLON);
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
 }
 
 void Parser::ntExpr()
 {
-	//V придумать синтаксис и написать
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
+	ntExpr5();
+	while(curType == Lex::OR) {
+		readLex();
+		ntExpr5();
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
+}
+
+void Parser::ntExpr5()
+{
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
+	ntExpr4();
+	while(curType == Lex::AND) {
+		readLex();
+		ntExpr4();
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
+}
+
+void Parser::ntExpr4()
+{
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
+	while(curType == Lex::NOT)
+		readLex();
+	ntExpr3();
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
+}
+
+void Parser::ntExpr3()
+{
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
+	ntExpr2();
+	if(curType == Lex::EQ || curType == Lex::NE ||
+		curType == Lex::LT || curType == Lex::GT ||
+		curType == Lex::LE || curType == Lex::GE ||
+		curType == Lex::ASSIGN)
+	{
+		readLex();
+		ntExpr2();
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
+}
+
+void Parser::ntExpr2()
+{
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
+	ntExpr1();
+	while(curType == Lex::PLUS || curType == Lex::MINUS) {
+		readLex();
+		ntExpr1();
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
+}
+
+void Parser::ntExpr1()
+{
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
+	ntOperand();
+	while(curType == Lex::MUL || curType == Lex::DIV ||
+		curType == Lex::MOD) {
+		readLex();
+		ntOperand();
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
+}
+
+void Parser::ntOperand()
+{
+	{
+		indentation++; //DEBUG
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
+	}
+	
+	switch(curType) {
+		case Lex::IDENT:
+			readLex();
+			break;
+		case Lex::CONST_INT:
+		case Lex::CONST_REAL:
+		case Lex::CONST_STRING:
+			ntConst();
+			break;
+		case Lex::OP_PAREN:
+			readLex();
+			ntExpr();
+			assertLex(Lex::CL_PAREN);
+			break;
+	}
+	
+	{
+		cout << "\t"; //DEBUG
+		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
+		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
+		indentation--; //DEBUG
+	}
 }
 
 int main() {
+	
 	Scanner scanner(cin);
-	cout << "***" << __LINE__ << endl; //DEBUG
 	vector<Lex> lexemes;
 	bool test;
 	test = scanner.lexAnalysis(lexemes);
@@ -856,4 +1198,17 @@ int main() {
 		}
 		cout << "lex. error" << endl;
 	}
+	
+	
+	/*
+	Parser parser(cin);
+	if(parser.syntaxAnalysis()) {
+		cout << "SUCCESS" << endl;
+	} else {
+		string str;
+		while( getline(cin, str) ) {
+			str.clear();
+		}
+	}
+	*/
 }
