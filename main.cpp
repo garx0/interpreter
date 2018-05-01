@@ -1237,10 +1237,13 @@ void Parser::ntOperand()
 
 int main(int argc, const char** argv) {
 	ifstream filestream;
+	bool inputIsFile = false;
 	if(argc >= 2) {
+		inputIsFile = true;
 		filestream.open(argv[1]);
 	}
-	istream& input = filestream ? filestream : cin; 
+	if(!filestream) throw false;
+	istream& input = inputIsFile ? filestream : cin; 
 	/*
 	Scanner scanner(cin);
 	vector<Lex> lexemes;
@@ -1258,7 +1261,6 @@ int main(int argc, const char** argv) {
 		}
 	}
 	*/
-	
 	Parser parser(input);
 	if(parser.syntaxAnalysis()) {
 		cout << "SUCCESS" << endl;
