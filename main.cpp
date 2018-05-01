@@ -306,6 +306,21 @@ ostream& operator<<(ostream& stream, Lex lexem) {
 	return stream;
 }
 
+bool opdTypesEq(Lex::Type type1, Lex::Type type2)
+//по этому правилу сравнения:
+//любые два типа из {INT, CONST_INT} равны
+//любые два типа из {BOOLEAN, CONST_BOOLEAN} равны
+//любые два типа из {STRING, CONST_STRING} равны
+{
+	if(type1 == Lex::INT || type1 == Lex::CONST_INT)
+		return type2 == Lex::INT || type2 == Lex::CONST_INT;
+	if(type1 == Lex::BOOLEAN || type1 == Lex::CONST_BOOLEAN)
+		return type2 == Lex::BOOLEAN || type2 == Lex::CONST_BOOLEAN;
+	if(type1 == Lex::STRING || type1 == Lex::CONST_STRING)
+		return type2 == Lex::STRING || type2 == Lex::CONST_STRING;
+	throw false;
+}
+	
 class Scanner {
 	typedef void (Scanner::*State)(char c);
 	istream& input;
@@ -362,15 +377,15 @@ public:
 bool Scanner::readLex()
 //возвращаемое значение = прочитал ли лексему
 {
-	cout << "state == Init: " << (state == &Scanner::stateInit) << endl; //DEBUG
-	//cout << "state == Err: " << (state == &Scanner::stateErr) << endl; //DEBUG
+	//~ cout << "state == Init: " << (state == &Scanner::stateInit) << endl; //DEBUG
+	//~ //cout << "state == Err: " << (state == &Scanner::stateErr) << endl; //DEBUG
 	if(!ready()) {
-		cout << "***" << __LINE__ << endl; //DEBUG
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		if(m_eof) {
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			return false;
 		} else {
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			throw false;
 		}
 	}
@@ -386,9 +401,9 @@ bool Scanner::readLex()
 			} else if(c == '\n') {
 				needIncLineNo = true;
 			}
-			cout << "***" << __LINE__ << ", got '" << c << "'" << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << ", got '" << c << "'" << endl; //DEBUG
 		} else {
-			cout << "***" << __LINE__ << endl; //DEBUG
+			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			c = '\n';
 			m_eof = true;
 			// если поток закончился, "скармливаем" автомату
@@ -444,7 +459,7 @@ bool Scanner::lexAnalysis(vector<Lex>& lexemes) {
 
 void Scanner::stateInit(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	if( isLetter(c) ) {
 		buf.push_back(c);
 		state = &Scanner::stateIdent;
@@ -494,14 +509,14 @@ void Scanner::stateInit(char c)
 			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			throw c;
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG
 }
 
 void Scanner::stateInt(char c)
 //V переименовать состояние и разветвить на два (для инта и рила)
 //переход в рил, если увидим точку
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if( isDigit(c) ) {
 		buf.push_back(c);
 	} else {
@@ -511,12 +526,12 @@ void Scanner::stateInt(char c)
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG
 }
 
 void Scanner::stateIdent(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if( isDigit(c) || isLetter(c) ) {
 		buf.push_back(c);
 	} else {
@@ -525,12 +540,12 @@ void Scanner::stateIdent(char c)
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
 void Scanner::stateCmpAss(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if(c == '=') {
 		buf.push_back(c);
 	} else {
@@ -541,12 +556,12 @@ void Scanner::stateCmpAss(char c)
 	curLex = {buf};
 	//~ cout << "***" << __LINE__ << endl; //DEBUG
 	prepare();
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
 void Scanner::stateNE(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if(c == '=') {
 		buf.push_back(c);
 		curLex = {Lex::NE};
@@ -555,12 +570,12 @@ void Scanner::stateNE(char c)
 	} else {
 		throw c;
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
 void Scanner::stateStr(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	switch(c) {
 		case '"':
 			curLex = {Lex::CONST_STRING, buf};
@@ -578,12 +593,12 @@ void Scanner::stateStr(char c)
 			buf.push_back(c);
 			break;
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG			
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG			
 }
 
 void Scanner::stateStrEsc(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	switch(c) {
 		case '\"':
 		case '\\':
@@ -612,12 +627,12 @@ void Scanner::stateStrEsc(char c)
 			buf.clear();
 			throw c;
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG
 }
 
 void Scanner::stateSlash(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	if(c == '*') {
 		state = &Scanner::stateComment;
 	} else {
@@ -625,24 +640,24 @@ void Scanner::stateSlash(char c)
 		curLex = {Lex::DIV};
 		prepare();
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
 void Scanner::stateComment(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	if(m_eof) {
 		throw c;
 	}
 	if(c == '*') {
 		state = &Scanner::stateCommentAst;
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
 void Scanner::stateCommentAst(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	if(m_eof) {
 		throw c;
 	}
@@ -651,15 +666,45 @@ void Scanner::stateCommentAst(char c)
 	} else {
 		state = &Scanner::stateComment;
 	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
 void stateErr(char c)
 {
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
+	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	throw c;
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG
+	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG
 }
+
+//~ struct opdType {
+//~ // представление типа операнда для проверки соответствия типов 
+//~ //   при семантическом анализе
+	//~ enum DataType {
+		//~ DATA_NULL = 0,
+		//~ INT,
+		//~ BOOLEAN,
+		//~ STRING
+	//~ }
+	//~ enum StoreType {
+		//~ STORE_NULL = 0,
+		//~ CONST,
+		//~ IDENT
+	//~ }
+
+	//~ DataType data = DATA_NULL;
+	//~ StoreType store = STORE_NULL;
+	
+	//~ opdType(DataType a_data = DATA_NULL, StoreType a_store = STORE_NULL):
+		//~ data(a_data), store(a_store) {}
+	//~ opdType(opdType a_type, StoreType a_store):
+		//~ data(a_type.data), store(a_store) {} 
+	//~ bool operator==(const opdType& type1, const opdType& type2) {
+		//~ return type1.data == type2.data;
+	//~ }
+	//~ bool operator!=(const opdType& type1, const opdType& type2) {
+		//~ return type1.data != type2.data;
+	//~ }
+//~ }
 
 class Parser {
 	Scanner scanner;
@@ -686,36 +731,49 @@ class Parser {
 	void ntExpr1();
 	void ntOperand();
 	
+	// в проверке совместимости типов операндов,
+	//   имена INT, BOOLEAN, STRING означают тип, который может
+	//   быть первым операндом операции "=";
+	//   имена CONST_INT, CONST_BOOLEAN, CONST_STRING означают
+	//   тип, который не может быть первым операндом операции "="
 	void checkOp() {
+		cout << "********" << __FUNCTION__ << endl; //DEBUG
 		Lex::Type opn, type1, type2;
 		type2 = stType.top();
+		cout << "popped " << type2 << endl; //DEBUG
 		stType.pop();
 		opn = stType.top();
+		cout << "popped " << opn << endl; //DEBUG
 		stType.pop();
 		type1 = stType.top();
+		cout << "popped " << type1 << endl; //DEBUG
 		stType.pop();
 		switch(opn) {
 			case Lex::PLUS:
-				if(type1 == type2 && type1 != Lex::BOOLEAN)
-					stType.push(type1);
+				if( opdTypesEq(type1, type2)
+					&& !opdTypesEq(type1, Lex::BOOLEAN) )
+					stType.push( opdTypesEq(type1, Lex::INT) ? 
+						Lex::CONST_INT : Lex::CONST_STRING );
 				else
-					throw "types mismatch in operation";
+					throw "types mismatch in operation '+'";
 				break;
 			case Lex::MINUS:
 			case Lex::MUL:
 			case Lex::DIV:
 			case Lex::MOD:
-				if(type1 == type2 && type1 == Lex::INT)
-					stType.push(Lex::INT);
+				if( opdTypesEq(type1, type2)
+					&& opdTypesEq(type1, Lex::INT) )
+					stType.push(Lex::CONST_INT);
 				else
-					throw "types mismatch in operation";
+					throw "types mismatch in operation '-' / '*' / '/'";
 				break;
 			case Lex::AND:
 			case Lex::OR:
-				if(type1 == type2 && type1 == Lex::BOOLEAN)
-					stType.push(Lex::BOOLEAN);
+				if( opdTypesEq(type1, type2)
+					&& opdTypesEq(type1, Lex::BOOLEAN) )
+					stType.push(Lex::CONST_BOOLEAN);
 				else
-					throw "types mismatch in operation";
+					throw "types mismatch in operation 'and' / 'or'";
 				break;
 			case Lex::EQ:
 			case Lex::NE:
@@ -723,27 +781,50 @@ class Parser {
 			case Lex::GE:
 			case Lex::LT:
 			case Lex::GT:
-				if(type1 == type2 && type1 != Lex::BOOLEAN)
+				if( opdTypesEq(type1, type2)
+					&& !opdTypesEq(type1, Lex::BOOLEAN) )
+					stType.push(Lex::CONST_BOOLEAN);
+				else
+					throw "types mismatch in operation of comparing";
+				break;
+			case Lex::ASSIGN:
+				if( (type1 == Lex::INT || type1 == Lex::BOOLEAN ||
+					type1 == Lex::STRING) && opdTypesEq(type1, type2) )
 					stType.push(type1);
 				else
-					throw "types mismatch in operation";
+					throw "types mismatch in operation '='";
 				break;
 			default:
-				bool i = 1;
-				assert(i == 0); //DEBUG
+				type1 = Lex::LEX_NULL;
+				assert(type1 == Lex::END); //DEBUG
 				break;
 		}
 	}
 	
 	void checkNot() {
-		if(stType.top() != Lex::BOOLEAN) {
-			throw "wrong type in \"not\"";
-		} else {
-			stType.pop();
-			stType.push(Lex::BOOLEAN);
-		}
+		Lex::Type type1 = stType.top();
+		cout << "popped " << type1 << endl; //DEBUG
+		stType.pop();
+		if(opdTypesEq(type1, Lex::BOOLEAN))
+			stType.push(Lex::CONST_BOOLEAN);
+		else
+			throw "types mismatch in operation 'not'";
 	}
+	
 	void checkIdent() {
+		if(tid[curVal].declared)
+			stType.push(tid[curVal].type);
+		else
+			throw "variable wasn't declared";
+	}
+	
+	void checkBoolRes() {
+		Lex::Type type = stType.top();
+		cout << "popped " << type << endl; //DEBUG
+		stType.pop();
+		if(!opdTypesEq(type, Lex::BOOLEAN))
+			throw "wrong expression type";
+	}
 		
 	int indentation = -1; //DEBUG
 public:
@@ -786,6 +867,10 @@ bool Parser::syntaxAnalysis()
 	catch(const char& c) {
 		cout << "lexical error: symbol '" << c << "', line "
 			<< scanner.getLineNo() << endl;
+		return false;
+	}
+	catch(const char* str) {
+		cout << "error: " << str << endl;
 		return false;
 	}
 }
@@ -921,7 +1006,7 @@ void Parser::ntVar()
 		readLex();
 		ntConst();
 		if(stType.top() != tid[ind].type)
-			throw "assignment types mismatch";
+			throw "initialization types mismatch";
 		stType.pop();
 		tid[ind].value = stVal.top();
 		stVal.pop();
@@ -1023,6 +1108,7 @@ void Parser::ntOper()
 			readLex();
 			assertLex(Lex::OP_PAREN);
 			ntExpr();
+			checkBoolRes();
 			assertLex(Lex::CL_PAREN);	
 			ntOper();
 			if(curType == Lex::ELSE) {
@@ -1034,6 +1120,7 @@ void Parser::ntOper()
 			readLex();
 			assertLex(Lex::OP_PAREN);
 			ntExpr();
+			checkBoolRes();
 			assertLex(Lex::CL_PAREN);
 			ntOper();
 			break;
@@ -1043,6 +1130,7 @@ void Parser::ntOper()
 			assertLex(Lex::WHILE);
 			assertLex(Lex::OP_PAREN);
 			ntExpr();
+			checkBoolRes();
 			assertLex(Lex::CL_PAREN);
 			assertLex(Lex::SEMICOLON);
 			break;
@@ -1053,6 +1141,10 @@ void Parser::ntOper()
 		case Lex::READ:
 			readLex();
 			assertLex(Lex::OP_PAREN);
+			if(!tid[curVal].declared)
+				throw "variable wasn't declared";
+			if(tid[curVal].type == Lex::BOOLEAN)
+				throw "trying to read to boolean variable";
 			assertLex(Lex::IDENT);
 			assertLex(Lex::CL_PAREN);
 			assertLex(Lex::SEMICOLON);
@@ -1137,10 +1229,11 @@ void Parser::ntExpr()
 	}
 	
 	ntExpr5();
-	while(curType == Lex::OR) {
+	while(curType == Lex::ASSIGN) {
 		stType.push(curType);
 		readLex();
 		ntExpr5();
+		cout << "ASS" << endl; //DEBUG
 		checkOp();
 	}
 	
@@ -1162,7 +1255,7 @@ void Parser::ntExpr5()
 	}
 	
 	ntExpr4();
-	while(curType == Lex::AND) {
+	while(curType == Lex::OR) {
 		stType.push(curType);
 		readLex();
 		ntExpr4();
@@ -1186,11 +1279,13 @@ void Parser::ntExpr4()
 		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
 	}
 	
-	while(curType == Lex::NOT) {
-		readLex();
-	}
 	ntExpr3();
-	checkNot();
+	while(curType == Lex::AND) {
+		stType.push(curType);
+		readLex();
+		ntExpr3();
+		checkOp();
+	}
 	
 	{
 		cout << "\t"; //DEBUG
@@ -1212,8 +1307,7 @@ void Parser::ntExpr3()
 	ntExpr2();
 	if(curType == Lex::EQ || curType == Lex::NE ||
 		curType == Lex::LT || curType == Lex::GT ||
-		curType == Lex::LE || curType == Lex::GE ||
-		curType == Lex::ASSIGN)
+		curType == Lex::LE || curType == Lex::GE)
 	{
 		stType.push(curType);
 		readLex();
@@ -1280,8 +1374,7 @@ void Parser::ntExpr1()
 }
 
 void Parser::ntOperand()
-//заносит в stType тип операнда (INT, BOOLEAN, STRING, IDENT)
-//в 
+//заносит в stType тип операнда
 {
 	{
 		indentation++; //DEBUG
@@ -1292,8 +1385,7 @@ void Parser::ntOperand()
 	
 	switch(curType) {
 		case Lex::IDENT:
-			if(!tid[curLex].declared)
-				throw "operand wasn't declared";
+			checkIdent();
 			readLex();
 			break;
 		case Lex::PLUS:
@@ -1301,7 +1393,18 @@ void Parser::ntOperand()
 		case Lex::CONST_INT:
 		case Lex::CONST_BOOLEAN:
 		case Lex::CONST_STRING:
+			stType.push(curType);
 			ntConst();
+			// ntConst выбросило в каждый стек по значению.
+			//   они нам сейчас не нужны
+			stType.pop();
+			stVal.pop();
+			
+			break;
+		case Lex::NOT:
+			readLex();
+			ntOperand();
+			checkNot();
 			break;
 		case Lex::OP_PAREN:
 			readLex();
@@ -1347,19 +1450,19 @@ int main(int argc, const char** argv) {
 	Parser parser(input);
 	if(parser.syntaxAnalysis()) {
 		cout << "SUCCESS" << endl;
-		vector<Ident> idents = tid.getVector();
-		for(auto& item : idents) {
-			cout << item.name << ", "
-				<< (int) item.type << ", "
-				<< (item.declared ? "decl" : "!decl") << ", "
-				<< (item.assigned ? "ass" : "!ass") << ", "
-				<< item.value << endl;
-		}
 	} else {
 		cout << "***" << __LINE__ << endl; //DEBUG
 		string str;
 		while( getline(input, str) ) {
 			str.clear();
 		}
+	}
+	vector<Ident> idents = tid.getVector();
+	for(auto& item : idents) {
+		cout << item.name << ", "
+			<< (int) item.type << ", "
+			<< (item.declared ? "decl" : "!decl") << ", "
+			<< (item.assigned ? "ass" : "!ass") << ", "
+			<< item.value << endl;
 	}
 }
