@@ -685,6 +685,66 @@ class Parser {
 	void ntExpr2();
 	void ntExpr1();
 	void ntOperand();
+	
+	void checkOp() {
+		Lex::Type opn, type1, type2;
+		type2 = stType.top();
+		stType.pop();
+		opn = stType.top();
+		stType.pop();
+		type1 = stType.top();
+		stType.pop();
+		switch(opn) {
+			case Lex::PLUS:
+				if(type1 == type2 && type1 != Lex::BOOLEAN)
+					stType.push(type1);
+				else
+					throw "types mismatch in operation";
+				break;
+			case Lex::MINUS:
+			case Lex::MUL:
+			case Lex::DIV:
+			case Lex::MOD:
+				if(type1 == type2 && type1 == Lex::INT)
+					stType.push(Lex::INT);
+				else
+					throw "types mismatch in operation";
+				break;
+			case Lex::AND:
+			case Lex::OR:
+				if(type1 == type2 && type1 == Lex::BOOLEAN)
+					stType.push(Lex::BOOLEAN);
+				else
+					throw "types mismatch in operation";
+				break;
+			case Lex::EQ:
+			case Lex::NE:
+			case Lex::LE:
+			case Lex::GE:
+			case Lex::LT:
+			case Lex::GT:
+				if(type1 == type2 && type1 != Lex::BOOLEAN)
+					stType.push(type1);
+				else
+					throw "types mismatch in operation";
+				break;
+			default:
+				bool i = 1;
+				assert(i == 0); //DEBUG
+				break;
+		}
+	}
+	
+	void checkNot() {
+		if(stType.top() != Lex::BOOLEAN) {
+			throw "wrong type in \"not\"";
+		} else {
+			stType.pop();
+			stType.push(Lex::BOOLEAN);
+		}
+	}
+	void checkIdent() {
+		
 	int indentation = -1; //DEBUG
 public:
 	Parser(istream& stream): scanner(stream) {}
@@ -1078,8 +1138,10 @@ void Parser::ntExpr()
 	
 	ntExpr5();
 	while(curType == Lex::OR) {
+		stType.push(curType);
 		readLex();
 		ntExpr5();
+		checkOp();
 	}
 	
 	{
@@ -1101,8 +1163,10 @@ void Parser::ntExpr5()
 	
 	ntExpr4();
 	while(curType == Lex::AND) {
+		stType.push(curType);
 		readLex();
 		ntExpr4();
+		checkOp();
 	}
 	
 	{
@@ -1122,9 +1186,11 @@ void Parser::ntExpr4()
 		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
 	}
 	
-	while(curType == Lex::NOT)
+	while(curType == Lex::NOT) {
 		readLex();
+	}
 	ntExpr3();
+	checkNot();
 	
 	{
 		cout << "\t"; //DEBUG
@@ -1149,8 +1215,10 @@ void Parser::ntExpr3()
 		curType == Lex::LE || curType == Lex::GE ||
 		curType == Lex::ASSIGN)
 	{
+		stType.push(curType);
 		readLex();
 		ntExpr2();
+		checkOp();
 	}
 	
 	{
@@ -1172,8 +1240,10 @@ void Parser::ntExpr2()
 	
 	ntExpr1();
 	while(curType == Lex::PLUS || curType == Lex::MINUS) {
+		stType.push(curType);
 		readLex();
 		ntExpr1();
+		checkOp();
 	}
 	
 	{
@@ -1192,12 +1262,13 @@ void Parser::ntExpr1()
 		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
 		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
 	}
-	
 	ntOperand();
 	while(curType == Lex::MUL || curType == Lex::DIV ||
 		curType == Lex::MOD) {
+		stType.push(curType);
 		readLex();
 		ntOperand();
+		checkOp();
 	}
 	
 	{
@@ -1209,6 +1280,8 @@ void Parser::ntExpr1()
 }
 
 void Parser::ntOperand()
+//заносит в stType тип операнда (INT, BOOLEAN, STRING, IDENT)
+//в 
 {
 	{
 		indentation++; //DEBUG
@@ -1219,8 +1292,12 @@ void Parser::ntOperand()
 	
 	switch(curType) {
 		case Lex::IDENT:
+			if(!tid[curLex].declared)
+				throw "operand wasn't declared";
 			readLex();
 			break;
+		case Lex::PLUS:
+		case Lex::MINUS:
 		case Lex::CONST_INT:
 		case Lex::CONST_BOOLEAN:
 		case Lex::CONST_STRING:
