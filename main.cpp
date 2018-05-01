@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <initializer_list>
+#include <fstream>
 
 using namespace std;
 
@@ -33,6 +34,9 @@ public:
 			contents.push_back(item);
 		}
 	}
+	int size() const {
+		return contents.size() - 1;
+	}
 	int put(const T& elem)
 	//если такого элемента нет в таблице, он заносится в таблицу;
 	//в любом случае, возвращается номер элемента в таблице
@@ -60,6 +64,11 @@ public:
 		//cout << "num = " << num << endl; //DEBUG
 		return num;
 	}
+	int push_back(const T& elem) {
+		contents.push_back(elem);
+		return size();
+	}
+
 	const T& operator[](int ind) const {
 		return contents[ind];
 	}	
@@ -104,9 +113,6 @@ const Table<string> td {
 	"="		//18
 };
 
-Table<string> tableIdent;
-Table<string> tableStr;
-	
 class Lex {
 public:
 	enum Type {
@@ -164,88 +170,27 @@ public:
 		
 	Lex(double a_realValue):
 		type(CONST_REAL), realValue(a_realValue) {}
-		
-	Lex(string name) {
-		//создается лексема типа "служебное слово", "разделитель" или IDENT
-		//  в зависимости от содержимого строки
-		if(isDigit(name[0])) {
-			throw false;
-		}
-		int num;
-		if(isLetter(name[0])) {
-			num = tw.find(name);
-			if(num > 0) {
-				type = (Lex::Type) num;
-			} else {
-				num = tableIdent.put(name);
-				type = Lex::IDENT;
-				value = num;
-			}
-		} else {
-			num = td.find(name);
-			if(num > 0) {
-				type = (Lex::Type) (32 + num);
-			} else {
-				throw false;
-			}
-		}
-	}
-	
-	Lex(Type a_type, string str): type(a_type) {
-		/* создается лексема типа IDENT или CONST_STRING в зависимости
-		 * от типа, указанного в аргументе (в случае другого типа - ошибка)
-		 */
-		int num;
-		switch(a_type) {
-			case IDENT:
-				value = tableIdent.put(str);
-				break;
-			case CONST_STRING:
-				value = tableStr.put(str);
-				break;
-			default:
-				throw false;
-		}
-	}
-	
-	friend ostream& operator<<(ostream& stream, Lex lexem) {
-		Lex::Type t = lexem.type;
-		switch(t) {
-			case LEX_NULL:
-				break;
-			case IDENT:
-				stream << tableIdent[lexem.value];
-				break;
-			case CONST_INT:
-				stream << lexem.value;
-				break;
-			case CONST_REAL:
-				stream << lexem.realValue;
-				break;
-			case CONST_STRING:
-				stream << tableStr[lexem.value];
-				break;
-			default:
-				if(t >= 1 && t <= 14) {
-					stream << tw[t];
-				} else if(t >= 32 + 1 && t <= 32 + 18) {
-					stream << td[t - 32];
-				}
-		}
-		stream << " {" << (int) lexem.type << ", " << lexem.value <<
-			", " << lexem.realValue << "}";
-		return stream;
-	}
-	
+	Lex(string name);
+	//создается лексема типа "служебное слово", "разделитель" или IDENT
+	//  в зависимости от содержимого строки
+	Lex(Type a_type, string str);
+	/* создается лексема типа IDENT или CONST_STRING в зависимости
+	 * от типа, указанного в аргументе (в случае другого типа - ошибка)
+	 */
+	friend ostream& operator<<(ostream& stream, Lex lexem);
 	bool operator==(const Lex& lex) const {
 		if(type != lex.type)
 			return false;
-		if(type == Lex::END)
-			return true;
-		if(type == Lex::CONST_REAL)
-			return realValue == lex.realValue;
-		else
-			return value == lex.value;
+		switch(type) {
+			case Lex::CONST_INT:
+			case Lex::CONST_STRING:
+			case Lex::IDENT:
+				return value == lex.value;
+			case Lex::CONST_REAL:
+				return realValue == lex.realValue;
+			default:
+				return true;
+		}
 	}
 	
 	bool operator!=(const Lex& lex) const {
@@ -259,42 +204,139 @@ public:
 	double getRealValue() const { return realValue; }
 };
 
+struct Ident {
+public:
+	string name;
+	Lex::Type type = Lex::LEX_NULL;
+	int value = 0;
+	double realValue = 0.0;
+	bool declared = false;
+	bool assigned = false;
+	
+	Ident() = default;
+	Ident(string a_name, Lex::Type a_type = Lex::LEX_NULL):
+		name(a_name), type(a_type) {}
+	bool operator==(const Ident& ident) {
+		return name == ident.name;
+	}
+};
+
+Table<Ident> tid;
+Table<string> tstr;
+
+Lex::Lex(string name) {
+	//создается лексема типа "служебное слово", "разделитель" или IDENT
+	//  в зависимости от содержимого строки
+	if(isDigit(name[0])) {
+		throw false;
+	}
+	int num;
+	if(isLetter(name[0])) {
+		num = tw.find(name);
+		if(num > 0) {
+			type = (Lex::Type) num;
+		} else {
+			num = tid.put(name);
+			type = Lex::IDENT;
+			value = num;
+		}
+	} else {
+		num = td.find(name);
+		if(num > 0) {
+			type = (Lex::Type) (32 + num);
+		} else {
+			throw false;
+		}
+	}
+}
+
+Lex::Lex(Type a_type, string str): type(a_type) {
+	/* создается лексема типа IDENT или CONST_STRING в зависимости
+	 * от типа, указанного в аргументе (в случае другого типа - ошибка)
+	 */
+	int num;
+	switch(a_type) {
+		case Lex::IDENT:
+			value = tid.put(str);
+			break;
+		case Lex::CONST_STRING:
+			value = tstr.put(str);
+			break;
+		default:
+			throw false;
+	}
+}
+
+ostream& operator<<(ostream& stream, Lex lexem) {
+	Lex::Type t = lexem.type;
+	switch(t) {
+		case Lex::LEX_NULL:
+			break;
+		case Lex::END:
+			stream << "END";
+		case Lex::IDENT:
+			stream << tid[lexem.value].name;
+			break;
+		case Lex::CONST_INT:
+			stream << lexem.value;
+			break;
+		case Lex::CONST_REAL:
+			stream << lexem.realValue;
+			break;
+		case Lex::CONST_STRING:
+			stream << tstr[lexem.value];
+			break;
+		default:
+			if(t >= 1 && t <= 14) {
+				stream << tw[t];
+			} else if(t >= 32 + 1 && t <= 32 + 18) {
+				stream << td[t - 32];
+			}
+			break;
+	}
+	stream << " {" << (int) lexem.type << ", " << lexem.value <<
+		", " << lexem.realValue << "}";
+	return stream;
+}
+
 class Scanner {
-	typedef bool (Scanner::*State)(char c);
+	typedef void (Scanner::*State)(char c);
 	istream& input;
 	State state = &Scanner::stateInit;
 	string buf;
 	Lex curLex;
-	bool m_ready = true;
+	int lineNo = 1;
+	bool ungetted = 0;
+	bool needIncLineNo = 0;
 	bool m_lexIsRead;
 	bool m_eof = false;
-	bool stateInit(char c);
+	void stateInit(char c);
 	// означает, что автомат прочитал очередную лексему,
 	//   либо еще не начал читать очередную, а пока двигается по ' ', '\n' и т.д.
 	//   т.е. в любом случае означает, что автомат готов к чтению очередной лексемы,
 	//   если она есть в потоке ( т.е. если !eof() )
-	bool stateInt(char c);
-	bool stateReal(char c);
-	bool stateIdent(char c);
-	bool stateCmpAss(char c);
-	bool stateNE(char c);
-	bool stateStr(char c);
-	bool stateStrEsc(char c);
-	bool stateSlash(char c);
-	bool stateComment(char c);
-	bool stateCommentAst(char c);
-	bool stateErr(char c);
+	void stateInt(char c);
+	void stateReal(char c);
+	void stateIdent(char c);
+	void stateCmpAss(char c);
+	void stateNE(char c);
+	void stateStr(char c);
+	void stateStrEsc(char c);
+	void stateSlash(char c);
+	void stateComment(char c);
+	void stateCommentAst(char c);
+	void stateErr(char c);
 	// означает, что автомат встретил лекс. ошибку и больше не будет
 	//   читать лексемы
 	void prepare() {
 		//когда прочитали очередную лексему и присвоили ее curLex
 		buf.clear();
-		m_ready = true;
 		m_lexIsRead = true;
 		state = &Scanner::stateInit;
 	}
 	void unget() {
 		if(!m_eof) {
+			ungetted = 1;
 			input.unget();
 		}
 	}
@@ -303,33 +345,44 @@ public:
 	bool readLex();
 	Lex getCurLex() const { return curLex; }
 	bool lexAnalysis(vector<Lex>& lexemes);
-	bool ready() const { return (state == &Scanner::stateInit); }
+	bool ready() const {
+		return (state == &Scanner::stateInit && !m_eof);
+	}
 	bool lexIsRead() const { return m_lexIsRead; }
 	bool eof() const { return m_eof; }
-	bool err() const { return (state == &Scanner::stateErr); }	
+	int getLineNo() const { return lineNo; }
 };
 
 bool Scanner::readLex()
+//возвращаемое значение = прочитал ли лексему
 {
-	if(m_eof) {
-		return false;
+	cout << "state == Init: " << (state == &Scanner::stateInit) << endl; //DEBUG
+	//cout << "state == Err: " << (state == &Scanner::stateErr) << endl; //DEBUG
+	if(!ready()) {
+		cout << "***" << __LINE__ << endl; //DEBUG
+		if(m_eof) {
+			cout << "***" << __LINE__ << endl; //DEBUG
+			return false;
+		} else {
+			cout << "***" << __LINE__ << endl; //DEBUG
+			throw false;
+		}
 	}
 	//~ cout << "***" << __LINE__ << endl; //DEBUG
-	if( err() ) {
-		m_lexIsRead = false;
-		return false;
-	}
-	assert( lexIsRead() || ready() || err() );
 	char c;
-	bool test;
 	m_lexIsRead = false;
-	while(1) {
+	while(true) {
 		//~ cout << endl; //DEBUG
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		if( input.get(c) ) {
-			//~ cout << "***" << __LINE__ << endl; //DEBUG
+			if(ungetted) {
+				ungetted = false;
+			} else if(c == '\n') {
+				needIncLineNo = true;
+			}
+			cout << "***" << __LINE__ << ", got '" << c << "'" << endl; //DEBUG
 		} else {
-			//~ cout << "***" << __LINE__ << endl; //DEBUG
+			cout << "***" << __LINE__ << endl; //DEBUG
 			c = '\n';
 			m_eof = true;
 			// если поток закончился, "скармливаем" автомату
@@ -340,20 +393,18 @@ bool Scanner::readLex()
 			// делать unget, т.к. символ '\n', данный ему, не из input
 		}
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
-		test = (this->*state) (c);
+		(this->*state) (c);
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
-		if( err() ) {
-			//~ cout << "***" << __LINE__ << endl; //DEBUG
-			return false;
-		}
-		
 		//~ cout << "from readlex: lexIsRead = " << m_lexIsRead << endl; //DEBUG
+		if(needIncLineNo) {
+			lineNo++;
+			needIncLineNo = false;
+		}
 		if(m_lexIsRead) {
 			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			return true;
 		}
 		if(m_eof) {
-			assert( ready() );
 			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			return false;
 		}
@@ -366,12 +417,15 @@ bool Scanner::lexAnalysis(vector<Lex>& lexemes) {
 	while(1) {
 		//cout << endl << endl; //DEBUG
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
-		readLex();
-		//~ cout << "***" << __LINE__ << endl; //DEBUG
-		assert( ready() || err() );
-		if( err() ) {
-			break;
+		try {
+			readLex();
 		}
+		catch(const char& c) {
+			cout << "lex. error at symbol '" << c << "', line "
+				<< lineNo << endl;
+			return false;
+		}
+		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		if( lexIsRead() ) {
 			lexemes.push_back( getCurLex() );
 		}
@@ -379,12 +433,12 @@ bool Scanner::lexAnalysis(vector<Lex>& lexemes) {
 			break;
 		}
 	}
-	return ( !err() );
+	return true;
 }
 
-bool Scanner::stateInit(char c)
+void Scanner::stateInit(char c)
 {
-	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	if( isLetter(c) ) {
 		buf.push_back(c);
 		state = &Scanner::stateIdent;
@@ -393,8 +447,13 @@ bool Scanner::stateInit(char c)
 		state = &Scanner::stateInt;
 	} else switch(c) {
 		case ' ':
-		case '\n':
 		case '\t':
+			break;
+		case '\n':
+			if(m_eof) {
+				curLex = Lex::END;
+				prepare();
+			}
 			break;
 		case '{':
 		case '}':
@@ -431,18 +490,16 @@ bool Scanner::stateInit(char c)
 			break;
 		default:
 			//~ cout << "***" << __LINE__ << endl; //DEBUG
-			state = &Scanner::stateErr;
-			return false;
+			throw c;
 	}
-	//~ cout << "***" << __LINE__ << endl; //DEBUG
-	return true;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG
 }
 
-bool Scanner::stateInt(char c)
+void Scanner::stateInt(char c)
 //V переименовать состояние и разветвить на два (для инта и рила)
 //переход в рил, если увидим точку
 {
-	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if( isDigit(c) ) {
 		buf.push_back(c);
 	} else if(c == '.') {
@@ -455,32 +512,31 @@ bool Scanner::stateInt(char c)
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 	}
-	return true;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG
 }
 
-bool Scanner::stateReal(char c)
+void Scanner::stateReal(char c)
 {
-	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if( isDigit(c) ) {
 		buf.push_back(c);
 	} else {
 		unget();
 		if(buf.back() == '.') {
 			buf.clear();
-			state = &Scanner::stateErr;
-			return false;
+			throw c;
 		}
 		double value = stod(buf);
 		curLex = {Lex::CONST_REAL, 0, value};
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 	}
-	return true;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
-bool Scanner::stateIdent(char c)
+void Scanner::stateIdent(char c)
 {
-	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if( isDigit(c) || isLetter(c) ) {
 		buf.push_back(c);
 	} else {
@@ -489,12 +545,12 @@ bool Scanner::stateIdent(char c)
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
 	}
-	return true;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
-bool Scanner::stateCmpAss(char c)
+void Scanner::stateCmpAss(char c)
 {
-	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if(c == '=') {
 		buf.push_back(c);
 	} else {
@@ -505,50 +561,49 @@ bool Scanner::stateCmpAss(char c)
 	curLex = {buf};
 	//~ cout << "***" << __LINE__ << endl; //DEBUG
 	prepare();
-	return true;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
-bool Scanner::stateNE(char c)
+void Scanner::stateNE(char c)
 {
-	//~ cout << "***" << __LINE__ << ", " << c << endl; //DEBUG
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if(c == '=') {
 		buf.push_back(c);
 		curLex = {Lex::NE};
 		//~ cout << "***" << __LINE__ << endl; //DEBUG
 		prepare();
-		return true;
 	} else {
-		buf.clear();
-		state = &Scanner::stateErr;
-		return false;
+		throw c;
 	}
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
-bool Scanner::stateStr(char c)
+void Scanner::stateStr(char c)
 {
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	switch(c) {
 		case '"':
 			curLex = {Lex::CONST_STRING, buf};
 			//~ cout << "***" << __LINE__ << endl; //DEBUG
 			prepare();
-			return true;
+			break;
 		case '\n':
 			buf.clear();
-			state = &Scanner::stateErr;
-			return false;
+			throw c;
 		//V экранирование
 		case '\\':
 			state = &Scanner::stateStrEsc;
-			return true;
+			break;
 		default:
 			buf.push_back(c);
 			break;
 	}
-			
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG			
 }
 
-bool Scanner::stateStrEsc(char c)
+void Scanner::stateStrEsc(char c)
 {
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	switch(c) {
 		case '\"':
 		case '\\':
@@ -575,14 +630,14 @@ bool Scanner::stateStrEsc(char c)
 			break;
 		default:
 			buf.clear();
-			state = &Scanner::stateErr;
-			return false;
+			throw c;
 	}
-	return true;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG
 }
 
-bool Scanner::stateSlash(char c)
+void Scanner::stateSlash(char c)
 {
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	if(c == '*') {
 		state = &Scanner::stateComment;
 	} else {
@@ -590,37 +645,40 @@ bool Scanner::stateSlash(char c)
 		curLex = {Lex::DIV};
 		prepare();
 	}
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
-bool Scanner::stateComment(char c)
+void Scanner::stateComment(char c)
 {
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	if(m_eof) {
-		state = &Scanner::stateErr;
-		return false;
+		throw c;
 	}
 	if(c == '*') {
 		state = &Scanner::stateCommentAst;
 	}
-	return true;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
-bool Scanner::stateCommentAst(char c)
+void Scanner::stateCommentAst(char c)
 {
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
 	if(m_eof) {
-		state = &Scanner::stateErr;
-		return false;
+		throw c;
 	}
 	if(c == '/') {
 		state = &Scanner::stateInit;
 	} else {
 		state = &Scanner::stateComment;
 	}
-	return true;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
-bool Scanner::stateErr(char c) 
+void stateErr(char c)
 {
-	return false;
+	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG	
+	throw c;
+	cout << "***/" << __FUNCTION__ << endl; //DEBUG
 }
 
 class Parser {
@@ -649,16 +707,9 @@ public:
 	Parser(istream& stream): scanner(stream) {}
 	bool syntaxAnalysis();
 	void readLex() {
-		bool test = scanner.readLex();
-		if( scanner.err() )
-			throw scanner.getCurLex();
-		if( scanner.lexIsRead() ) {
-			curLex = scanner.getCurLex();
-			cout << "\t\t\t\t\tlexRead: " << curLex << endl; //DEBUG
-		} else {
-			cout << "\t\t\t\t\tlexIsntRead" << endl; //DEBUG
-			curLex = Lex::END;	
-		}
+		scanner.readLex();
+		curLex = scanner.getCurLex();
+		cout << "\t\t\t\t\tlexRead: " << curLex << endl; //DEBUG
 		curType = curLex.getType();
 	}
 	void assertLex(Lex::Type lexType) {
@@ -684,7 +735,13 @@ bool Parser::syntaxAnalysis()
 		return true;
 	}
 	catch(const Lex& lex) {
-		cout << "syntax error: at lexem " << lex << endl;
+		cout << "syntax error: lexem " << lex << ", line "
+			<< scanner.getLineNo() << endl;
+		return false;
+	}
+	catch(const char& c) {
+		cout << "lexical error: symbol '" << c << "', line "
+			<< scanner.getLineNo() << endl;
 		return false;
 	}
 }
@@ -1178,15 +1235,18 @@ void Parser::ntOperand()
 	}
 }
 
-int main() {
-	
+int main(int argc, const char** argv) {
+	ifstream filestream;
+	if(argc >= 2) {
+		filestream.open(argv[1]);
+	}
+	istream& input = filestream ? filestream : cin; 
+	/*
 	Scanner scanner(cin);
 	vector<Lex> lexemes;
 	bool test;
 	test = scanner.lexAnalysis(lexemes);
-	if( test ) {	
-		assert( scanner.ready() ||
-			scanner.err() );
+	if( test ) {
 		for(auto& item : lexemes) {
 			//cout << item.getType() << "; " << item.getValue() << endl;
 			cout << item << endl;
@@ -1196,19 +1256,17 @@ int main() {
 		while( getline(cin, str) ) {
 			str.clear();
 		}
-		cout << "lex. error" << endl;
 	}
+	*/
 	
-	
-	/*
-	Parser parser(cin);
+	Parser parser(input);
 	if(parser.syntaxAnalysis()) {
 		cout << "SUCCESS" << endl;
 	} else {
+		cout << "***" << __LINE__ << endl; //DEBUG
 		string str;
-		while( getline(cin, str) ) {
+		while( getline(input, str) ) {
 			str.clear();
 		}
 	}
-	*/
 }
