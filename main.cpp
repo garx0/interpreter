@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <stack>
 #include <algorithm>
 #include <cassert>
 #include <initializer_list>
@@ -72,13 +73,16 @@ public:
 	const T& operator[](int ind) const {
 		return contents[ind];
 	}	
+	T& operator[](int ind) {
+		return contents[ind];
+	}	
 	vector<T> getVector() const {return contents;}
 };
 
 const Table<string> tw {
 	"program",	//1
 	"int",		//2
-	"real",		//3
+	"boolean",	//3
 	"string",   //4
 	"not",		//5
 	"and",		//6
@@ -120,7 +124,7 @@ public:
 		
 		PROGRAM		= 1,
 		INT			= 2,
-		REAL		= 3,
+		BOOLEAN		= 3,
 		STRING		= 4,
 		NOT			= 5,
 		AND			= 6,
@@ -154,7 +158,7 @@ public:
 		
 		IDENT		= 64,
 		CONST_INT	= 65,
-		CONST_REAL	= 66,
+		CONST_BOOLEAN	= 66,
 		CONST_STRING= 67,
 		END			= 68
 	};
@@ -163,13 +167,9 @@ public:
 private:
 	Type type;
 	int value = 0;
-	double realValue = 0.0;
 public:
 	Lex(Type a_type = LEX_NULL, int a_value = 0, double a_realValue = 0.0): 
-		type(a_type), value(a_value), realValue(a_realValue) {}
-		
-	Lex(double a_realValue):
-		type(CONST_REAL), realValue(a_realValue) {}
+		type(a_type), value(a_value) {}
 	Lex(string name);
 	//создается лексема типа "служебное слово", "разделитель" или IDENT
 	//  в зависимости от содержимого строки
@@ -184,10 +184,9 @@ public:
 		switch(type) {
 			case Lex::CONST_INT:
 			case Lex::CONST_STRING:
+			case Lex::CONST_BOOLEAN:
 			case Lex::IDENT:
 				return value == lex.value;
-			case Lex::CONST_REAL:
-				return realValue == lex.realValue;
 			default:
 				return true;
 		}
@@ -200,8 +199,6 @@ public:
 	Type getType() const { return type; }
 	
 	int getValue() const { return value; }
-	
-	double getRealValue() const { return realValue; }
 };
 
 struct Ident {
@@ -225,11 +222,22 @@ Table<Ident> tid;
 Table<string> tstr;
 
 Lex::Lex(string name) {
-	//создается лексема типа "служебное слово", "разделитель" или IDENT
-	//  в зависимости от содержимого строки
+	// создается лексема типа 
+	//   "служебное слово", "разделитель", CONST_BOOLEAN или IDENT
+	//   в зависимости от содержимого строки
 	if(isDigit(name[0])) {
 		throw false;
 	}
+	if(name == "true") {
+		type = Lex::CONST_BOOLEAN;
+		value = 1;
+		return;
+	}
+	if(name == "false") {
+		type = Lex::CONST_BOOLEAN;
+		value = 0;
+		return;
+	}		
 	int num;
 	if(isLetter(name[0])) {
 		num = tw.find(name);
@@ -280,8 +288,8 @@ ostream& operator<<(ostream& stream, Lex lexem) {
 		case Lex::CONST_INT:
 			stream << lexem.value;
 			break;
-		case Lex::CONST_REAL:
-			stream << lexem.realValue;
+		case Lex::CONST_BOOLEAN:
+			stream << (lexem.value ? "true" : "false");
 			break;
 		case Lex::CONST_STRING:
 			stream << tstr[lexem.value];
@@ -294,8 +302,7 @@ ostream& operator<<(ostream& stream, Lex lexem) {
 			}
 			break;
 	}
-	stream << " {" << (int) lexem.type << ", " << lexem.value <<
-		", " << lexem.realValue << "}";
+	stream << " {" << (int) lexem.type << ", " << lexem.value << "}";
 	return stream;
 }
 
@@ -316,7 +323,6 @@ class Scanner {
 	//   т.е. в любом случае означает, что автомат готов к чтению очередной лексемы,
 	//   если она есть в потоке ( т.е. если !eof() )
 	void stateInt(char c);
-	void stateReal(char c);
 	void stateIdent(char c);
 	void stateCmpAss(char c);
 	void stateNE(char c);
@@ -478,10 +484,6 @@ void Scanner::stateInit(char c)
 			buf.push_back(c);
 			state = &Scanner::stateNE;
 			break;
-		case '.':
-			buf.push_back(c);
-			state = &Scanner::stateReal;
-			break;
 		case '"':
 			state = &Scanner::stateStr;
 			break;
@@ -502,9 +504,6 @@ void Scanner::stateInt(char c)
 	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if( isDigit(c) ) {
 		buf.push_back(c);
-	} else if(c == '.') {
-		buf.push_back(c);
-		state = &Scanner::stateReal;
 	} else {
 		unget();
 		int value = stoi(buf);
@@ -513,25 +512,6 @@ void Scanner::stateInt(char c)
 		prepare();
 	}
 	cout << "***/" << __FUNCTION__ << endl; //DEBUG
-}
-
-void Scanner::stateReal(char c)
-{
-	cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
-	if( isDigit(c) ) {
-		buf.push_back(c);
-	} else {
-		unget();
-		if(buf.back() == '.') {
-			buf.clear();
-			throw c;
-		}
-		double value = stod(buf);
-		curLex = {Lex::CONST_REAL, 0, value};
-		//~ cout << "***" << __LINE__ << endl; //DEBUG
-		prepare();
-	}
-	cout << "***/" << __FUNCTION__ << endl; //DEBUG	
 }
 
 void Scanner::stateIdent(char c)
@@ -685,6 +665,9 @@ class Parser {
 	Scanner scanner;
 	Lex curLex = Lex::LEX_NULL;
 	Lex::Type curType = Lex::LEX_NULL;
+	int curVal = 0;
+	stack<Lex::Type> stType;
+	stack<int> stVal;
 	void ntProgram();
 	void ntMulDescr();
 	void ntDescr();
@@ -711,17 +694,18 @@ public:
 		curLex = scanner.getCurLex();
 		cout << "\t\t\t\t\tlexRead: " << curLex << endl; //DEBUG
 		curType = curLex.getType();
+		curVal = curLex.getValue();
 	}
 	void assertLex(Lex::Type lexType) {
 	/* стандартная конструкция, повторяющаяся много раз в
 	 * процедурах, соотв. нетерминалам
 	 */
-		//~ cout << curType << " == " << lexType << ": " << (curType == lexType) << endl; //DEBUG
+		//cout << curType << " == " << lexType << ": " << (curType == lexType) << endl; //DEBUG
 		if(curType == lexType) {
-			//~ cout << "(+) assertLex of type = " << lexType << endl; //DEBUG
+			//cout << "(+) assertLex of type = " << lexType << endl; //DEBUG
 			readLex();
 		} else {
-			//~ cout << "(-) assertLex" << endl; //DEBUG
+			//cout << "(-) assertLex" << endl; //DEBUG
 			throw curLex;
 		}
 	}
@@ -775,7 +759,7 @@ void Parser::ntProgram()
 //после ее выполнения curLex равен первой лексеме после этой конструкции
 
 bool isTypename(Lex::Type lexType) {
-	return lexType == Lex::INT || lexType == Lex::REAL ||
+	return lexType == Lex::INT || lexType == Lex::BOOLEAN ||
 		lexType == Lex::STRING;
 }
 
@@ -814,10 +798,19 @@ void Parser::ntDescr()
 		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
 	}
 	
+	Lex::Type identType = curType;
 	ntType();
+	tid[curVal].type = identType;
+	if(tid[curVal].declared)
+		throw "declared twice";
+	tid[curVal].declared = true;
 	ntVar();
 	while(curType == Lex::COMMA) {
 		readLex();
+		tid[curVal].type = identType;
+		if(tid[curVal].declared)
+			throw "declared twice";
+		tid[curVal].declared = true;
 		ntVar();
 	}
 	
@@ -854,6 +847,7 @@ void Parser::ntType()
 void Parser::ntVar() 
 //исп. только для объявления переменной
 //для остальных целей используется лексема-идентификатор
+//процедура возвращает стек таким, каким получила
 {
 	{
 		indentation++; //DEBUG
@@ -861,11 +855,17 @@ void Parser::ntVar()
 		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
 		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
 	}
-	
+	int ind = curVal;
 	assertLex(Lex::IDENT);
 	if(curType == Lex::ASSIGN) {
 		readLex();
 		ntConst();
+		if(stType.top() != tid[ind].type)
+			throw "assignment types mismatch";
+		stType.pop();
+		tid[ind].value = stVal.top();
+		stVal.pop();
+		tid[ind].assigned = true;
 	}
 	
 	{
@@ -877,6 +877,8 @@ void Parser::ntVar()
 }
 
 void Parser::ntConst()
+//кладет в каждый стек по одному элементу
+//(тип и значение константы в соотв. стек)
 {
 	{
 		indentation++; //DEBUG
@@ -884,27 +886,31 @@ void Parser::ntConst()
 		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
 		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
 	}
-	
-	if(curType == Lex::PLUS || curType == Lex::MINUS) {
+	int num;
+	bool plus = false;
+	if( (plus = curType == Lex::PLUS) || curType == Lex::MINUS ) {
 		readLex();
-		switch(curType) {
-			case Lex::CONST_INT:
-				readLex();
-				break;
-			case Lex::CONST_REAL:
-				readLex();
-				break;
-			default:
-				throw curLex;
+		if(curType == Lex::CONST_INT) {
+			stVal.push(plus ? curVal : -curVal);
+			stType.push(Lex::INT);
+			readLex();
+		} else {
+			throw curLex;
 		}
 	} else switch(curType) {
 		case Lex::CONST_INT:
+			stVal.push(curVal);
+			stType.push(Lex::INT);
 			readLex();
 			break;
-		case Lex::CONST_REAL:
+		case Lex::CONST_BOOLEAN:
+			stVal.push(curVal);
+			stType.push(Lex::BOOLEAN);
 			readLex();
 			break;
 		case Lex::CONST_STRING:
+			stVal.push(curVal);
+			stType.push(Lex::STRING);
 			readLex();
 			break;
 		default:
@@ -943,7 +949,7 @@ void Parser::ntMulOper()
 	}
 }
 
-void Parser::ntOper() //V do-while и if без else реализовать!
+void Parser::ntOper()
 {
 	{
 		indentation++; //DEBUG
@@ -1216,7 +1222,7 @@ void Parser::ntOperand()
 			readLex();
 			break;
 		case Lex::CONST_INT:
-		case Lex::CONST_REAL:
+		case Lex::CONST_BOOLEAN:
 		case Lex::CONST_STRING:
 			ntConst();
 			break;
@@ -1244,26 +1250,34 @@ int main(int argc, const char** argv) {
 	}
 	if(!filestream) throw false;
 	istream& input = inputIsFile ? filestream : cin; 
-	/*
-	Scanner scanner(cin);
-	vector<Lex> lexemes;
-	bool test;
-	test = scanner.lexAnalysis(lexemes);
-	if( test ) {
-		for(auto& item : lexemes) {
-			//cout << item.getType() << "; " << item.getValue() << endl;
-			cout << item << endl;
-		}
-	} else {
-		string str;
-		while( getline(cin, str) ) {
-			str.clear();
-		}
-	}
-	*/
+
+	//~ Scanner scanner(cin);
+	//~ vector<Lex> lexemes;
+	//~ bool test;
+	//~ test = scanner.lexAnalysis(lexemes);
+	//~ if( test ) {
+		//~ for(auto& item : lexemes) {
+			//~ //cout << item.getType() << "; " << item.getValue() << endl;
+			//~ cout << item << endl;
+		//~ }
+	//~ } else {
+		//~ string str;
+		//~ while( getline(cin, str) ) {
+			//~ str.clear();
+		//~ }
+	//~ }
+	
 	Parser parser(input);
 	if(parser.syntaxAnalysis()) {
 		cout << "SUCCESS" << endl;
+		vector<Ident> idents = tid.getVector();
+		for(auto& item : idents) {
+			cout << item.name << ", "
+				<< (int) item.type << ", "
+				<< (item.declared ? "decl" : "!decl") << ", "
+				<< (item.assigned ? "ass" : "!ass") << ", "
+				<< item.value << endl;
+		}
 	} else {
 		cout << "***" << __LINE__ << endl; //DEBUG
 		string str;
