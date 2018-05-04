@@ -1,0 +1,16 @@
+program {
+	int i, j, k = 20;
+	int f;
+	string str = "test string лол ₽\n";
+	i = 1 + 10 / 20;
+	if(i == 2) {
+		write(i);
+		/* this branch won't
+		 * be reached лол ₽
+		 */
+	} else {
+		write(str);
+	}
+	read(f); /* write f please */
+	write(f / 2);
+}
