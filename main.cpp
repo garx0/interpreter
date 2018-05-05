@@ -6,10 +6,9 @@
 #include <initializer_list>
 #include <fstream>
 
-#include "globals.hpp"
+#include "table.hpp"
 #include "lex.hpp"
 #include "parser.hpp"
-#include "table.hpp"
 #include "utilfuncs.hpp"
 
 using namespace std;
@@ -50,6 +49,7 @@ int main(int argc, const char** argv) {
 			str.clear();
 		}
 	}
+	/*
 	vector<Ident> idents = tid.getVector();
 	for(auto& item : idents) {
 		cout << item.name << ", "
@@ -58,4 +58,5 @@ int main(int argc, const char** argv) {
 			<< (item.assigned ? "ass" : "!ass") << ", "
 			<< item.value << endl;
 	}
+	*/
 }

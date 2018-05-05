@@ -8,12 +8,11 @@
 #include <initializer_list>
 #include <fstream>
 
-#include "globals.hpp"
+#include "table.hpp"
 
 using namespace std;
 
-class Lex {
-public:
+namespace LexT {
 	enum Type {
 		LEX_NULL	= 0,
 		
@@ -57,69 +56,49 @@ public:
 		CONST_STRING= 67,
 		END			= 68
 	};
-	
-
-private:
-	Type type;
-	int value = 0;
-public:
-	Lex(Type a_type = LEX_NULL, int a_value = 0, double a_realValue = 0.0): 
-		type(a_type), value(a_value) {}
-	Lex(string name);
-	//создается лексема типа "служебное слово", "разделитель" или IDENT
-	//  в зависимости от содержимого строки
-	Lex(Type a_type, string str);
-	/* создается лексема типа IDENT или CONST_STRING в зависимости
-	 * от типа, указанного в аргументе (в случае другого типа - ошибка)
-	 */
-	friend ostream& operator<<(ostream& stream, Lex lexem);
-	bool operator==(const Lex& lex) const {
-		if(type != lex.type)
-			return false;
-		switch(type) {
-			case Lex::CONST_INT:
-			case Lex::CONST_STRING:
-			case Lex::CONST_BOOLEAN:
-			case Lex::IDENT:
-				return value == lex.value;
-			default:
-				return true;
-		}
-	}
-	bool operator!=(const Lex& lex) const;
-	Type getType() const;	
-	int getValue() const;
-};
+}
 
 struct Ident {
 public:
 	string name;
-	Lex::Type type = Lex::LEX_NULL;
+	LexT::Type type = LexT::LEX_NULL;
 	int value = 0;
 	double realValue = 0.0;
 	bool declared = false;
 	bool assigned = false;
 	
 	Ident() = default;
-	Ident(string a_name, Lex::Type a_type = Lex::LEX_NULL):
+	Ident(string a_name, LexT::Type a_type = LexT::LEX_NULL):
 		name(a_name), type(a_type) {}
 	bool operator==(const Ident& ident);
 };
 
-bool Ident::operator==(const Ident& ident)
-{
-		return name == ident.name;
-}
-	
-Lex::Lex(string name);
+extern const Table<string> tw;
+extern const Table<string> td;
+
+extern Table<Ident> tid;
+extern Table<string> tstr;
+
+class Lex {
+private:
+	LexT::Type type;
+	int value = 0;
+public:
+	Lex(LexT::Type a_type = LexT::LEX_NULL, int a_value = 0, double a_realValue = 0.0): 
+		type(a_type), value(a_value) {}
+	Lex(string name);
 	// создается лексема типа 
 	//   "служебное слово", "разделитель", CONST_BOOLEAN или IDENT
 	//   в зависимости от содержимого строки
-	
-Lex::Lex(Type a_type, string str): type(a_type);
-	/* создается лексема типа IDENT или CONST_STRING в зависимости
-	 * от типа, указанного в аргументе (в случае другого типа - ошибка)
-	 */
+	Lex(LexT::Type a_type, string str);
+	// создается лексема типа IDENT или CONST_STRING в зависимости
+	//   от типа, указанного в аргументе (в случае другого типа - ошибка)
+	friend ostream& operator<<(ostream& stream, Lex lexem);
+	bool operator==(const Lex& lex) const;
+	bool operator!=(const Lex& lex) const;
+	LexT::Type getType() const;	
+	int getValue() const;
+};
 
 ostream& operator<<(ostream& stream, Lex lexem);
 	

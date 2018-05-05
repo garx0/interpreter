@@ -6,18 +6,31 @@
 #include <initializer_list>
 #include <fstream>
 
-#include "globals.hpp"
 #include "lex.hpp"
 #include "parser.hpp"
 #include "table.hpp"
 #include "utilfuncs.hpp"
+
+#define ntIn { \
+	indentation++; \
+	cout << "\t"; \
+	for(int i = 0; i < indentation; i++) cout << "_"; \
+	cout << "<" << __FUNCTION__ << ">" << endl; \
+}
+
+#define ntOut { \
+	cout << "\t"; \
+	for(int i = 0; i < indentation; i++) cout << "_"; \
+	cout << "</" << __FUNCTION__ << ">" << endl; \
+	indentation--; \
+}
 
 using namespace std;
 
 void Parser::checkOp()
 {
 	//cout << "********" << __FUNCTION__ << endl; //DEBUG
-	Lex::Type opn, type1, type2;
+	LexT::Type opn, type1, type2;
 	type2 = stType.top();
 	//~ cout << "popped " << type2 << endl; //DEBUG
 	stType.pop();
@@ -28,65 +41,65 @@ void Parser::checkOp()
 	//~ cout << "popped " << type1 << endl; //DEBUG
 	stType.pop();
 	switch(opn) {
-		case Lex::PLUS:
+		case LexT::PLUS:
 			if( opdTypesEq(type1, type2)
-				&& !opdTypesEq(type1, Lex::BOOLEAN) )
-				stType.push( opdTypesEq(type1, Lex::INT) ? 
-					Lex::CONST_INT : Lex::CONST_STRING );
+				&& !opdTypesEq(type1, LexT::BOOLEAN) )
+				stType.push( opdTypesEq(type1, LexT::INT) ? 
+					LexT::CONST_INT : LexT::CONST_STRING );
 			else
 				throw "types mismatch in operation '+'";
 			break;
-		case Lex::MINUS:
-		case Lex::MUL:
-		case Lex::DIV:
-		case Lex::MOD:
+		case LexT::MINUS:
+		case LexT::MUL:
+		case LexT::DIV:
+		case LexT::MOD:
 			if( opdTypesEq(type1, type2)
-				&& opdTypesEq(type1, Lex::INT) )
-				stType.push(Lex::CONST_INT);
+				&& opdTypesEq(type1, LexT::INT) )
+				stType.push(LexT::CONST_INT);
 			else
 				throw "types mismatch in operation '-' / '*' / '/'";
 			break;
-		case Lex::AND:
-		case Lex::OR:
+		case LexT::AND:
+		case LexT::OR:
 			if( opdTypesEq(type1, type2)
-				&& opdTypesEq(type1, Lex::BOOLEAN) )
-				stType.push(Lex::CONST_BOOLEAN);
+				&& opdTypesEq(type1, LexT::BOOLEAN) )
+				stType.push(LexT::CONST_BOOLEAN);
 			else
 				throw "types mismatch in operation 'and' / 'or'";
 			break;
-		case Lex::EQ:
-		case Lex::NE:
-		case Lex::LE:
-		case Lex::GE:
-		case Lex::LT:
-		case Lex::GT:
+		case LexT::EQ:
+		case LexT::NE:
+		case LexT::LE:
+		case LexT::GE:
+		case LexT::LT:
+		case LexT::GT:
 			if( opdTypesEq(type1, type2)
-				&& !opdTypesEq(type1, Lex::BOOLEAN) )
-				stType.push(Lex::CONST_BOOLEAN);
+				&& !opdTypesEq(type1, LexT::BOOLEAN) )
+				stType.push(LexT::CONST_BOOLEAN);
 			else
 				throw "types mismatch in operation of comparing";
 			break;
-		case Lex::ASSIGN:
-			if( (type1 == Lex::INT || type1 == Lex::BOOLEAN ||
-				type1 == Lex::STRING) && opdTypesEq(type1, type2) )
+		case LexT::ASSIGN:
+			if( (type1 == LexT::INT || type1 == LexT::BOOLEAN ||
+				type1 == LexT::STRING) && opdTypesEq(type1, type2) )
 				stType.push(type1);
 			else
 				throw "types mismatch in operation '='";
 			break;
 		default:
-			type1 = Lex::LEX_NULL;
-			assert(type1 == Lex::END); //DEBUG
+			type1 = LexT::LEX_NULL;
+			assert(type1 == LexT::END); //DEBUG
 			break;
 	}
 }
 
 void Parser::checkNot()
 {
-	Lex::Type type1 = stType.top();
+	LexT::Type type1 = stType.top();
 	//~ cout << "popped " << type1 << endl; //DEBUG
 	stType.pop();
-	if(opdTypesEq(type1, Lex::BOOLEAN))
-		stType.push(Lex::CONST_BOOLEAN);
+	if(opdTypesEq(type1, LexT::BOOLEAN))
+		stType.push(LexT::CONST_BOOLEAN);
 	else
 		throw "types mismatch in operation 'not'";
 }
@@ -101,17 +114,27 @@ void Parser::checkIdent()
 
 void Parser::checkBoolRes()
 {
-	Lex::Type type = stType.top();
+	LexT::Type type = stType.top();
 	//~ cout << "popped " << type << endl; //DEBUG
 	stType.pop();
-	if(!opdTypesEq(type, Lex::BOOLEAN))
+	if(!opdTypesEq(type, LexT::BOOLEAN))
 		throw "wrong expression type";
 }
 
-void Parser::assertLex(Lex::Type lexType) {
+void Parser::readLex()
+{
+	scanner.readLex();
+	curLex = scanner.getCurLex();
+	cout << "\t\t\t\t\tlexRead: " << curLex << endl; //DEBUG
+	curType = curLex.getType();
+	curVal = curLex.getValue();
+}
+
+void Parser::assertLex(LexT::Type lexType)
 /* стандартная конструкция, повторяющаяся много раз в
  * процедурах, соотв. нетерминалам
  */
+{
 	//cout << curType << " == " << lexType << ": " << (curType == lexType) << endl; //DEBUG
 	if(curType == lexType) {
 		//cout << "(+) assertLex of type = " << lexType << endl; //DEBUG
@@ -147,80 +170,41 @@ bool Parser::syntaxAnalysis()
 
 void Parser::ntProgram()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
-	assertLex(Lex::PROGRAM);
-	assertLex(Lex::OP_BRACE);
+	ntIn; //DEBUG
+	assertLex(LexT::PROGRAM);
+	assertLex(LexT::OP_BRACE);
 	ntMulDescr();
 	ntMulOper();
-	assertLex(Lex::CL_BRACE);
-	if(curType != Lex::END)
+	assertLex(LexT::CL_BRACE);
+	if(curType != LexT::END)
 		throw curLex;
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 //любая процедура nt... проверяет на собственную "конструкцию", и
 //после ее выполнения curLex равен первой лексеме после этой конструкции
 
-bool isTypename(Lex::Type lexType) {
-	return lexType == Lex::INT || lexType == Lex::BOOLEAN ||
-		lexType == Lex::STRING;
-}
-
-bool isSign(Lex::Type lexType) {
-	return lexType == Lex::PLUS || lexType == Lex::MINUS;
-}
-
 void Parser::ntMulDescr()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	while(isTypename(curType)) {
 		ntDescr();
-		assertLex(Lex::SEMICOLON);
+		assertLex(LexT::SEMICOLON);
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntDescr()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
-	Lex::Type identType = curType;
+	ntIn; //DEBUG
+	LexT::Type identType = curType;
 	ntType();
 	tid[curVal].type = identType;
 	if(tid[curVal].declared)
 		throw "declared twice";
 	tid[curVal].declared = true;
 	ntVar();
-	while(curType == Lex::COMMA) {
+	while(curType == LexT::COMMA) {
 		readLex();
 		tid[curVal].type = identType;
 		if(tid[curVal].declared)
@@ -228,35 +212,17 @@ void Parser::ntDescr()
 		tid[curVal].declared = true;
 		ntVar();
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntType()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	if(isTypename(curType))
 		readLex();
 	else
 		throw curLex;
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntVar() 
@@ -264,15 +230,10 @@ void Parser::ntVar()
 //для остальных целей используется лексема-идентификатор
 //процедура возвращает стек таким, каким получила
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
+	ntIn; //DEBUG
 	int ind = curVal;
-	assertLex(Lex::IDENT);
-	if(curType == Lex::ASSIGN) {
+	assertLex(LexT::IDENT);
+	if(curType == LexT::ASSIGN) {
 		readLex();
 		ntConst();
 		if(stType.top() != tid[ind].type)
@@ -282,387 +243,244 @@ void Parser::ntVar()
 		stVal.pop();
 		tid[ind].assigned = true;
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntConst()
 //кладет в каждый стек по одному элементу
 //(тип и значение константы в соотв. стек)
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
+	ntIn; //DEBUG
 	int num;
 	bool plus = false;
-	if( (plus = curType == Lex::PLUS) || curType == Lex::MINUS ) {
+	if( (plus = curType == LexT::PLUS) || curType == LexT::MINUS ) {
 		readLex();
-		if(curType == Lex::CONST_INT) {
+		if(curType == LexT::CONST_INT) {
 			stVal.push(plus ? curVal : -curVal);
-			stType.push(Lex::INT);
+			stType.push(LexT::INT);
 			readLex();
 		} else {
 			throw curLex;
 		}
 	} else switch(curType) {
-		case Lex::CONST_INT:
+		case LexT::CONST_INT:
 			stVal.push(curVal);
-			stType.push(Lex::INT);
+			stType.push(LexT::INT);
 			readLex();
 			break;
-		case Lex::CONST_BOOLEAN:
+		case LexT::CONST_BOOLEAN:
 			stVal.push(curVal);
-			stType.push(Lex::BOOLEAN);
+			stType.push(LexT::BOOLEAN);
 			readLex();
 			break;
-		case Lex::CONST_STRING:
+		case LexT::CONST_STRING:
 			stVal.push(curVal);
-			stType.push(Lex::STRING);
+			stType.push(LexT::STRING);
 			readLex();
 			break;
 		default:
 			throw curLex;
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntMulOper()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
-	while(curType == Lex::IF || curType == Lex::WHILE || 
-		curType == Lex::DO || curType == Lex::BREAK || 
-		curType == Lex::READ || curType == Lex::WRITE || 
-		curType == Lex::OP_BRACE || curType == Lex::IDENT) {
+	ntIn; //DEBUG
+	while(curType == LexT::IF || curType == LexT::WHILE || 
+		curType == LexT::DO || curType == LexT::BREAK || 
+		curType == LexT::READ || curType == LexT::WRITE || 
+		curType == LexT::OP_BRACE || curType == LexT::IDENT) {
 		ntOper();
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntOper()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	switch(curType) {
-		case Lex::IF:
+		case LexT::IF:
 			readLex();
-			assertLex(Lex::OP_PAREN);
+			assertLex(LexT::OP_PAREN);
 			ntExpr();
 			checkBoolRes();
-			assertLex(Lex::CL_PAREN);	
+			assertLex(LexT::CL_PAREN);	
 			ntOper();
-			if(curType == Lex::ELSE) {
+			if(curType == LexT::ELSE) {
 				readLex();
 				ntOper();
 			}
 			break;
-		case Lex::WHILE:
+		case LexT::WHILE:
 			readLex();
-			assertLex(Lex::OP_PAREN);
+			assertLex(LexT::OP_PAREN);
 			ntExpr();
 			checkBoolRes();
-			assertLex(Lex::CL_PAREN);
+			assertLex(LexT::CL_PAREN);
 			ntOper();
 			break;
-		case Lex::DO:
+		case LexT::DO:
 			readLex();
 			ntOper();
-			assertLex(Lex::WHILE);
-			assertLex(Lex::OP_PAREN);
+			assertLex(LexT::WHILE);
+			assertLex(LexT::OP_PAREN);
 			ntExpr();
 			checkBoolRes();
-			assertLex(Lex::CL_PAREN);
-			assertLex(Lex::SEMICOLON);
+			assertLex(LexT::CL_PAREN);
+			assertLex(LexT::SEMICOLON);
 			break;
-		case Lex::BREAK:
+		case LexT::BREAK:
 			readLex();
-			assertLex(Lex::SEMICOLON);
+			assertLex(LexT::SEMICOLON);
 			break;
-		case Lex::READ:
+		case LexT::READ:
 			readLex();
-			assertLex(Lex::OP_PAREN);
+			assertLex(LexT::OP_PAREN);
 			if(!tid[curVal].declared)
 				throw "variable wasn't declared";
-			if(tid[curVal].type == Lex::BOOLEAN)
+			if(tid[curVal].type == LexT::BOOLEAN)
 				throw "trying to read to boolean variable";
-			assertLex(Lex::IDENT);
-			assertLex(Lex::CL_PAREN);
-			assertLex(Lex::SEMICOLON);
+			assertLex(LexT::IDENT);
+			assertLex(LexT::CL_PAREN);
+			assertLex(LexT::SEMICOLON);
 			break;
-		case Lex::WRITE:
+		case LexT::WRITE:
 			readLex();
-			assertLex(Lex::OP_PAREN);
+			assertLex(LexT::OP_PAREN);
 			ntExpr();
-			while(curType == Lex::COMMA) {
+			while(curType == LexT::COMMA) {
 				readLex();
 				ntExpr();
 			}
-			assertLex(Lex::CL_PAREN);
-			assertLex(Lex::SEMICOLON);
+			assertLex(LexT::CL_PAREN);
+			assertLex(LexT::SEMICOLON);
 			break;
-		case Lex::OP_BRACE:
+		case LexT::OP_BRACE:
 			ntComplOper();
 			break;
-		case Lex::IDENT:
+		case LexT::IDENT:
 			ntExprOper();
 			break;
 		default:
 			throw curLex;
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntComplOper()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
-	assertLex(Lex::OP_BRACE);
+	ntIn; //DEBUG
+	assertLex(LexT::OP_BRACE);
 	ntMulOper();
-	assertLex(Lex::CL_BRACE);
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	assertLex(LexT::CL_BRACE);
+	ntOut; //DEBUG
 }
 
 void Parser::ntExprOper()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	ntExpr();
-	assertLex(Lex::SEMICOLON);
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	assertLex(LexT::SEMICOLON);
+	ntOut; //DEBUG
 }
 
 void Parser::ntExpr()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	ntExpr5();
-	while(curType == Lex::ASSIGN) {
+	while(curType == LexT::ASSIGN) {
 		stType.push(curType);
 		readLex();
 		ntExpr5();
-		//~ cout << "ASS" << endl; //DEBUG
 		checkOp();
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntExpr5()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	ntExpr4();
-	while(curType == Lex::OR) {
+	while(curType == LexT::OR) {
 		stType.push(curType);
 		readLex();
 		ntExpr4();
 		checkOp();
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntExpr4()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	ntExpr3();
-	while(curType == Lex::AND) {
+	while(curType == LexT::AND) {
 		stType.push(curType);
 		readLex();
 		ntExpr3();
 		checkOp();
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntExpr3()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	ntExpr2();
-	if(curType == Lex::EQ || curType == Lex::NE ||
-		curType == Lex::LT || curType == Lex::GT ||
-		curType == Lex::LE || curType == Lex::GE)
+	if(curType == LexT::EQ || curType == LexT::NE ||
+		curType == LexT::LT || curType == LexT::GT ||
+		curType == LexT::LE || curType == LexT::GE)
 	{
 		stType.push(curType);
 		readLex();
 		ntExpr2();
 		checkOp();
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntExpr2()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	ntExpr1();
-	while(curType == Lex::PLUS || curType == Lex::MINUS) {
+	while(curType == LexT::PLUS || curType == LexT::MINUS) {
 		stType.push(curType);
 		readLex();
 		ntExpr1();
 		checkOp();
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntExpr1()
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
+	ntIn; //DEBUG
 	ntOperand();
-	while(curType == Lex::MUL || curType == Lex::DIV ||
-		curType == Lex::MOD) {
+	while(curType == LexT::MUL || curType == LexT::DIV ||
+		curType == LexT::MOD) {
 		stType.push(curType);
 		readLex();
 		ntOperand();
 		checkOp();
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }
 
 void Parser::ntOperand()
 //заносит в stType тип операнда
 {
-	{
-		indentation++; //DEBUG
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "<" << __FUNCTION__ << ">" << endl; //DEBUG
-	}
-	
+	ntIn; //DEBUG
 	switch(curType) {
-		case Lex::IDENT:
+		case LexT::IDENT:
 			checkIdent();
 			readLex();
 			break;
-		case Lex::PLUS:
-		case Lex::MINUS:
-		case Lex::CONST_INT:
-		case Lex::CONST_BOOLEAN:
-		case Lex::CONST_STRING:
+		case LexT::PLUS:
+		case LexT::MINUS:
+		case LexT::CONST_INT:
+		case LexT::CONST_BOOLEAN:
+		case LexT::CONST_STRING:
 			stType.push(curType);
 			ntConst();
 			// ntConst выбросило в каждый стек по значению.
@@ -671,22 +489,16 @@ void Parser::ntOperand()
 			stVal.pop();
 			
 			break;
-		case Lex::NOT:
+		case LexT::NOT:
 			readLex();
 			ntOperand();
 			checkNot();
 			break;
-		case Lex::OP_PAREN:
+		case LexT::OP_PAREN:
 			readLex();
 			ntExpr();
-			assertLex(Lex::CL_PAREN);
+			assertLex(LexT::CL_PAREN);
 			break;
 	}
-	
-	{
-		cout << "\t"; //DEBUG
-		for(int i = 0; i < indentation; i++) cout << "_"; //DEBUG
-		cout << "</" << __FUNCTION__ << ">" << endl; //DEBUG
-		indentation--; //DEBUG
-	}
+	ntOut; //DEBUG
 }

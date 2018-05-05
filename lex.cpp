@@ -1,5 +1,3 @@
-#pragma once
-
 #include <iostream>
 #include <vector>
 #include <stack>
@@ -8,11 +6,52 @@
 #include <initializer_list>
 #include <fstream>
 
+#include "table.hpp"
 #include "lex.hpp"
-#include "globals.hpp"
 #include "utilfuncs.hpp"
 
 using namespace std;
+
+const Table<string> tw {
+	"program",	//1
+	"int",		//2
+	"boolean",	//3
+	"string",   //4
+	"not",		//5
+	"and",		//6
+	"or",		//7
+	"if",		//8
+	"else",		//9
+	"do",		//10
+	"while",	//11
+	"read",		//12
+	"write",	//13
+	"break"		//14
+};
+
+const Table<string> td {
+	"{",	//1
+	"}",	//2
+	"(",	//3
+	")",	//4
+	",",	//5
+	";",	//6
+	"+",	//7
+	"-",	//8
+	"*",	//9
+	"/",	//10
+	"%",	//11
+	"<",	//12
+	">",	//13
+	"<=",	//14
+	">=",	//15
+	"==",	//16
+	"!=",	//17
+	"="		//18
+};
+
+Table<Ident> tid;
+Table<string> tstr;
 
 Lex::Lex(string name)
 {
@@ -20,12 +59,12 @@ Lex::Lex(string name)
 		throw false;
 	}
 	if(name == "true") {
-		type = Lex::CONST_BOOLEAN;
+		type = LexT::CONST_BOOLEAN;
 		value = 1;
 		return;
 	}
 	if(name == "false") {
-		type = Lex::CONST_BOOLEAN;
+		type = LexT::CONST_BOOLEAN;
 		value = 0;
 		return;
 	}		
@@ -33,30 +72,30 @@ Lex::Lex(string name)
 	if(isLetter(name[0])) {
 		num = tw.find(name);
 		if(num > 0) {
-			type = (Lex::Type) num;
+			type = (LexT::Type) num;
 		} else {
 			num = tid.put(name);
-			type = Lex::IDENT;
+			type = LexT::IDENT;
 			value = num;
 		}
 	} else {
 		num = td.find(name);
 		if(num > 0) {
-			type = (Lex::Type) (32 + num);
+			type = (LexT::Type) (32 + num);
 		} else {
 			throw false;
 		}
 	}
 }
 
-Lex::Lex(Type a_type, string str): type(a_type)
+Lex::Lex(LexT::Type a_type, string str): type(a_type)
 {
 	int num;
 	switch(a_type) {
-		case Lex::IDENT:
+		case LexT::IDENT:
 			value = tid.put(str);
 			break;
-		case Lex::CONST_STRING:
+		case LexT::CONST_STRING:
 			value = tstr.put(str);
 			break;
 		default:
@@ -69,10 +108,10 @@ bool Lex::operator==(const Lex& lex) const
 	if(type != lex.type)
 		return false;
 	switch(type) {
-		case Lex::CONST_INT:
-		case Lex::CONST_STRING:
-		case Lex::CONST_BOOLEAN:
-		case Lex::IDENT:
+		case LexT::CONST_INT:
+		case LexT::CONST_STRING:
+		case LexT::CONST_BOOLEAN:
+		case LexT::IDENT:
 			return value == lex.value;
 		default:
 			return true;
@@ -84,7 +123,7 @@ bool Lex::operator!=(const Lex& lex) const
 	return !(*this == lex);
 }
 	
-Lex::Type Lex::getType() const
+LexT::Type Lex::getType() const
 {
 	return type;
 }
@@ -96,22 +135,22 @@ int Lex::getValue() const
 
 ostream& operator<<(ostream& stream, Lex lexem)
 {
-	Lex::Type t = lexem.type;
+	LexT::Type t = lexem.type;
 	switch(t) {
-		case Lex::LEX_NULL:
+		case LexT::LEX_NULL:
 			break;
-		case Lex::END:
+		case LexT::END:
 			stream << "END";
-		case Lex::IDENT:
+		case LexT::IDENT:
 			stream << tid[lexem.value].name;
 			break;
-		case Lex::CONST_INT:
+		case LexT::CONST_INT:
 			stream << lexem.value;
 			break;
-		case Lex::CONST_BOOLEAN:
+		case LexT::CONST_BOOLEAN:
 			stream << (lexem.value ? "true" : "false");
 			break;
-		case Lex::CONST_STRING:
+		case LexT::CONST_STRING:
 			stream << tstr[lexem.value];
 			break;
 		default:
@@ -124,6 +163,11 @@ ostream& operator<<(ostream& stream, Lex lexem)
 	}
 	stream << " {" << (int) lexem.type << ", " << lexem.value << "}";
 	return stream;
+}
+
+bool Ident::operator==(const Ident& ident)
+{
+		return name == ident.name;
 }
 
 void Scanner::prepare()
@@ -220,7 +264,7 @@ void Scanner::stateInit(char c)
 			break;
 		case '\n':
 			if(m_eof) {
-				curLex = Lex::END;
+				curLex = LexT::END;
 				prepare();
 			}
 			break;
@@ -267,7 +311,7 @@ void Scanner::stateInt(char c)
 	} else {
 		unget();
 		int value = stoi(buf);
-		curLex = {Lex::CONST_INT, value};
+		curLex = {LexT::CONST_INT, value};
 		prepare();
 	}
 	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG
@@ -306,7 +350,7 @@ void Scanner::stateNE(char c)
 	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	if(c == '=') {
 		buf.push_back(c);
-		curLex = {Lex::NE};
+		curLex = {LexT::NE};
 		prepare();
 	} else {
 		throw c;
@@ -319,7 +363,7 @@ void Scanner::stateStr(char c)
 	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
 	switch(c) {
 		case '"':
-			curLex = {Lex::CONST_STRING, buf};
+			curLex = {LexT::CONST_STRING, buf};
 			prepare();
 			break;
 		case '\n':
@@ -376,7 +420,7 @@ void Scanner::stateSlash(char c)
 		state = &Scanner::stateComment;
 	} else {
 		unget();
-		curLex = {Lex::DIV};
+		curLex = {LexT::DIV};
 		prepare();
 	}
 	//~ cout << "***/" << __FUNCTION__ << endl; //DEBUG	
