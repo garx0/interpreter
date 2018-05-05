@@ -24,6 +24,7 @@ int main(int argc, const char** argv) {
 	
 	istream& input = inputIsFile ? filestream : cin; 
 
+	// SOMETHING
 	//~ Scanner scanner(cin);
 	//~ vector<Lex> lexemes;
 	//~ bool test;
