@@ -290,7 +290,10 @@ void Parser::ntMulOper()
 	while(curType == LexT::IF || curType == LexT::WHILE || 
 		curType == LexT::DO || curType == LexT::BREAK || 
 		curType == LexT::READ || curType == LexT::WRITE || 
-		curType == LexT::OP_BRACE || curType == LexT::IDENT) {
+		curType == LexT::OP_BRACE || curType == LexT::IDENT ||
+		curType == LexT::PLUS || curType == LexT::MINUS ||
+		curType == LexT::CONST_INT || curType == LexT::CONST_BOOLEAN ||
+		curType == LexT::CONST_STRING) {
 		ntOper();
 	}
 	ntOut; //DEBUG
@@ -360,6 +363,11 @@ void Parser::ntOper()
 			ntComplOper();
 			break;
 		case LexT::IDENT:
+		case LexT::PLUS:
+		case LexT::MINUS:
+		case LexT::CONST_INT:
+		case LexT::CONST_BOOLEAN:
+		case LexT::CONST_STRING:
 			ntExprOper();
 			break;
 		default:
@@ -499,6 +507,8 @@ void Parser::ntOperand()
 			ntExpr();
 			assertLex(LexT::CL_PAREN);
 			break;
+		default:
+			throw curLex;
 	}
 	ntOut; //DEBUG
 }

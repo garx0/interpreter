@@ -19,8 +19,9 @@ int main(int argc, const char** argv) {
 	if(argc >= 2) {
 		inputIsFile = true;
 		filestream.open(argv[1]);
+		if(!filestream) throw false;
 	}
-	if(!filestream) throw false;
+	
 	istream& input = inputIsFile ? filestream : cin; 
 
 	//~ Scanner scanner(cin);
