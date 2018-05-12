@@ -12,7 +12,7 @@ bool isDigit(char c)
 	return c >= '0' && c <= '9';
 }
 
-bool opdTypesEq(LexT::Type type1, LexT::Type type2)
+bool opdTypesEq(LexT type1, LexT type2)
 {
 	if(type1 == LexT::INT || type1 == LexT::CONST_INT)
 		return type2 == LexT::INT || type2 == LexT::CONST_INT;
@@ -23,11 +23,11 @@ bool opdTypesEq(LexT::Type type1, LexT::Type type2)
 	throw false;
 }
 
-bool isTypename(LexT::Type lexType) {
+bool isTypename(LexT lexType) {
 	return lexType == LexT::INT || lexType == LexT::BOOLEAN ||
 		lexType == LexT::STRING;
 }
 
-bool isSign(LexT::Type lexType) {
+bool isSign(LexT lexType) {
 	return lexType == LexT::PLUS || lexType == LexT::MINUS;
 }

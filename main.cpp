@@ -10,6 +10,7 @@
 #include "lex.hpp"
 #include "parser.hpp"
 #include "utilfuncs.hpp"
+#include "rpn.hpp"
 
 using namespace std;
 
@@ -22,9 +23,8 @@ int main(int argc, const char** argv) {
 		if(!filestream) throw false;
 	}
 	
-	istream& input = inputIsFile ? filestream : cin; 
-
-	// SOMETHING
+	istream& input = inputIsFile ? filestream : cin;
+	
 	//~ Scanner scanner(cin);
 	//~ vector<Lex> lexemes;
 	//~ bool test;

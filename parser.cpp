@@ -30,7 +30,7 @@ using namespace std;
 void Parser::checkOp()
 {
 	//cout << "********" << __FUNCTION__ << endl; //DEBUG
-	LexT::Type opn, type1, type2;
+	LexT opn, type1, type2;
 	type2 = stType.top();
 	//~ cout << "popped " << type2 << endl; //DEBUG
 	stType.pop();
@@ -95,7 +95,7 @@ void Parser::checkOp()
 
 void Parser::checkNot()
 {
-	LexT::Type type1 = stType.top();
+	LexT type1 = stType.top();
 	//~ cout << "popped " << type1 << endl; //DEBUG
 	stType.pop();
 	if(opdTypesEq(type1, LexT::BOOLEAN))
@@ -114,7 +114,7 @@ void Parser::checkIdent()
 
 void Parser::checkBoolRes()
 {
-	LexT::Type type = stType.top();
+	LexT type = stType.top();
 	//~ cout << "popped " << type << endl; //DEBUG
 	stType.pop();
 	if(!opdTypesEq(type, LexT::BOOLEAN))
@@ -130,7 +130,7 @@ void Parser::readLex()
 	curVal = curLex.getValue();
 }
 
-void Parser::assertLex(LexT::Type lexType)
+void Parser::assertLex(LexT lexType)
 /* стандартная конструкция, повторяющаяся много раз в
  * процедурах, соотв. нетерминалам
  */
@@ -197,7 +197,7 @@ void Parser::ntMulDescr()
 void Parser::ntDescr()
 {
 	ntIn; //DEBUG
-	LexT::Type identType = curType;
+	LexT identType = curType;
 	ntType();
 	tid[curVal].type = identType;
 	if(tid[curVal].declared)

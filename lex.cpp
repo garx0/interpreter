@@ -72,7 +72,7 @@ Lex::Lex(string name)
 	if(isLetter(name[0])) {
 		num = tw.find(name);
 		if(num > 0) {
-			type = (LexT::Type) num;
+			type = (LexT) num;
 		} else {
 			num = tid.put(name);
 			type = LexT::IDENT;
@@ -81,14 +81,14 @@ Lex::Lex(string name)
 	} else {
 		num = td.find(name);
 		if(num > 0) {
-			type = (LexT::Type) (32 + num);
+			type = (LexT) (32 + num);
 		} else {
 			throw false;
 		}
 	}
 }
 
-Lex::Lex(LexT::Type a_type, string str): type(a_type)
+Lex::Lex(LexT a_type, string str): type(a_type)
 {
 	int num;
 	switch(a_type) {
@@ -123,7 +123,7 @@ bool Lex::operator!=(const Lex& lex) const
 	return !(*this == lex);
 }
 	
-LexT::Type Lex::getType() const
+LexT Lex::getType() const
 {
 	return type;
 }
@@ -135,7 +135,7 @@ int Lex::getValue() const
 
 ostream& operator<<(ostream& stream, Lex lexem)
 {
-	LexT::Type t = lexem.type;
+	LexT t = lexem.type;
 	switch(t) {
 		case LexT::LEX_NULL:
 			break;
@@ -154,12 +154,15 @@ ostream& operator<<(ostream& stream, Lex lexem)
 			stream << tstr[lexem.value];
 			break;
 		default:
-			if(t >= 1 && t <= 14) {
-				stream << tw[t];
-			} else if(t >= 32 + 1 && t <= 32 + 18) {
-				stream << td[t - 32];
+			{
+				int i = (int) t;
+				if(i >= 1 && i <= 14) {
+					stream << tw[i];
+				} else if(i >= 32 + 1 && i <= 32 + 18) {
+					stream << td[i - 32];
+				} else throw "yet undefined";
+				break;
 			}
-			break;
 	}
 	stream << " {" << (int) lexem.type << ", " << lexem.value << "}";
 	return stream;

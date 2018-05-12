@@ -11,6 +11,7 @@
 #include "lex.hpp"
 #include "table.hpp"
 #include "utilfuncs.hpp"
+#include "rpn.hpp"
 
 using namespace std;
 
@@ -47,10 +48,12 @@ using namespace std;
 class Parser {
 	Scanner scanner;
 	Lex curLex = LexT::LEX_NULL;
-	LexT::Type curType = LexT::LEX_NULL;
+	LexT curType = LexT::LEX_NULL;
 	int curVal = 0;
-	stack<LexT::Type> stType;
+	stack<LexT> stType;
 	stack<int> stVal;
+	//RpnContext context;
+	vector<RpnOp*> rpn;
 	void ntProgram();
 	void ntMulDescr();
 	void ntDescr();
@@ -84,7 +87,7 @@ public:
 	Parser(istream& stream): scanner(stream) {}
 	bool syntaxAnalysis();
 	void readLex();
-	void assertLex(LexT::Type lexType);
+	void assertLex(LexT lexType);
 	/* стандартная конструкция, повторяющаяся много раз в
 	 * процедурах, соотв. нетерминалам
 	 */
