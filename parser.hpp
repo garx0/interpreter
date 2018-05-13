@@ -6,11 +6,9 @@
 #include <algorithm>
 #include <cassert>
 #include <initializer_list>
-#include <fstream>
 
-#include "lex.hpp"
 #include "table.hpp"
-#include "utilfuncs.hpp"
+#include "lex.hpp"
 #include "rpn.hpp"
 
 using namespace std;
@@ -92,3 +90,13 @@ public:
 	 * процедурах, соотв. нетерминалам
 	 */
 };
+
+bool opdTypesEq(LexT type1, LexT type2);
+//по этому правилу сравнения:
+//любые два типа из {INT, CONST_INT} равны
+//любые два типа из {BOOLEAN, CONST_BOOLEAN} равны
+//любые два типа из {STRING, CONST_STRING} равны
+
+bool isTypename(LexT lexType);
+
+bool isSign(LexT lexType);

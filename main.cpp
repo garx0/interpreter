@@ -1,15 +1,11 @@
 #include <iostream>
 #include <vector>
-#include <stack>
-#include <algorithm>
 #include <cassert>
-#include <initializer_list>
 #include <fstream>
 
 #include "table.hpp"
 #include "lex.hpp"
 #include "parser.hpp"
-#include "utilfuncs.hpp"
 #include "rpn.hpp"
 
 using namespace std;
@@ -20,9 +16,8 @@ int main(int argc, const char** argv) {
 	if(argc >= 2) {
 		inputIsFile = true;
 		filestream.open(argv[1]);
-		if(!filestream) throw false;
+		if(!filestream) throw "failed to open the file";
 	}
-	
 	istream& input = inputIsFile ? filestream : cin;
 	
 	//~ Scanner scanner(cin);
@@ -51,7 +46,6 @@ int main(int argc, const char** argv) {
 			str.clear();
 		}
 	}
-	/*
 	vector<Ident> idents = tid.getVector();
 	for(auto& item : idents) {
 		cout << item.name << ", "
@@ -60,5 +54,4 @@ int main(int argc, const char** argv) {
 			<< (item.assigned ? "ass" : "!ass") << ", "
 			<< item.value << endl;
 	}
-	*/
 }

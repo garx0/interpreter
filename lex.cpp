@@ -1,14 +1,9 @@
 #include <iostream>
 #include <vector>
-#include <stack>
-#include <algorithm>
 #include <cassert>
-#include <initializer_list>
-#include <fstream>
 
 #include "table.hpp"
 #include "lex.hpp"
-#include "utilfuncs.hpp"
 
 using namespace std;
 
@@ -53,9 +48,13 @@ const Table<string> td {
 Table<Ident> tid;
 Table<string> tstr;
 
+bool isLetter(char c) {
+	return isalpha(c) || c == '_';
+}
+
 Lex::Lex(string name)
 {
-	if(isDigit(name[0])) {
+	if(isdigit(name[0])) {
 		throw false;
 	}
 	if(name == "true") {
@@ -170,7 +169,7 @@ ostream& operator<<(ostream& stream, Lex lexem)
 
 bool Ident::operator==(const Ident& ident)
 {
-		return name == ident.name;
+	return name == ident.name;
 }
 
 void Scanner::prepare()
@@ -258,7 +257,7 @@ void Scanner::stateInit(char c)
 	if( isLetter(c) ) {
 		buf.push_back(c);
 		state = &Scanner::stateIdent;
-	} else if ( isDigit(c) ) {
+	} else if ( isdigit(c) ) {
 		buf.push_back(c);
 		state = &Scanner::stateInt;
 	} else switch(c) {
@@ -309,7 +308,7 @@ void Scanner::stateInit(char c)
 void Scanner::stateInt(char c)
 {
 	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
-	if( isDigit(c) ) {
+	if( isdigit(c) ) {
 		buf.push_back(c);
 	} else {
 		unget();
@@ -323,7 +322,7 @@ void Scanner::stateInt(char c)
 void Scanner::stateIdent(char c)
 {
 	//~ cout << "***" << __FUNCTION__ << "(" << c << ")" << endl; //DEBUG
-	if( isDigit(c) || isLetter(c) ) {
+	if( isdigit(c) || isLetter(c) ) {
 		buf.push_back(c);
 	} else {
 		unget();

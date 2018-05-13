@@ -1,15 +1,13 @@
 #include <iostream>
 #include <vector>
 #include <stack>
-#include <algorithm>
 #include <cassert>
-#include <initializer_list>
-#include <fstream>
 
+#include "table.hpp"
 #include "lex.hpp"
 #include "parser.hpp"
-#include "table.hpp"
-#include "utilfuncs.hpp"
+#include "rpn.hpp"
+
 
 #define ntIn { \
 	indentation++; \
@@ -87,9 +85,24 @@ void Parser::checkOp()
 				throw "types mismatch in operation '='";
 			break;
 		default:
-			type1 = LexT::LEX_NULL;
-			assert(type1 == LexT::END); //DEBUG
-			break;
+			assert(false); //DEBUG
+	}
+	switch(opn) {
+		case LexT::PLUS: rpn.push_back(new RpnAdd); break;
+		case LexT::MINUS: rpn.push_back(new RpnSub); break;
+		case LexT::MUL: rpn.push_back(new RpnMul); break;
+		case LexT::DIV: rpn.push_back(new RpnDiv); break;
+		case LexT::MOD: rpn.push_back(new RpnMod); break;
+		case LexT::AND: rpn.push_back(new RpnAnd); break;
+		case LexT::OR: rpn.push_back(new RpnOr); break;
+		case LexT::EQ: rpn.push_back(new RpnEq); break;
+		case LexT::NE: rpn.push_back(new RpnNe); break;
+		case LexT::LE: rpn.push_back(new RpnLe); break;
+		case LexT::GE: rpn.push_back(new RpnGe); break;
+		case LexT::LT: rpn.push_back(new RpnLt); break;
+		case LexT::GT: rpn.push_back(new RpnGt); break;
+		case LexT::ASSIGN: rpn.push_back(new RpnAssign); break;
+		default: assert(false); //DEBUG
 	}
 }
 
@@ -102,6 +115,7 @@ void Parser::checkNot()
 		stType.push(LexT::CONST_BOOLEAN);
 	else
 		throw "types mismatch in operation 'not'";
+	rpn.push_back(new RpnNot);
 }
 
 void Parser::checkIdent()
@@ -150,6 +164,10 @@ bool Parser::syntaxAnalysis()
 	try {
 		readLex();
 		ntProgram();
+		for(auto &item : rpn) {
+			cout << *item << " ";
+		}
+		cout << endl; 
 		return true;
 	}
 	catch(const Lex& lex) {
@@ -332,33 +350,50 @@ void Parser::ntOper()
 			checkBoolRes();
 			assertLex(LexT::CL_PAREN);
 			assertLex(LexT::SEMICOLON);
+			rpn.push_back(new RpnSemicolon);
 			break;
 		case LexT::BREAK:
 			readLex();
 			assertLex(LexT::SEMICOLON);
+			rpn.push_back(new RpnSemicolon);
 			break;
 		case LexT::READ:
+			rpn.push_back(new RpnRead);
 			readLex();
 			assertLex(LexT::OP_PAREN);
-			if(!tid[curVal].declared)
-				throw "variable wasn't declared";
-			if(tid[curVal].type == LexT::BOOLEAN)
-				throw "trying to read to boolean variable";
-			assertLex(LexT::IDENT);
+			if(curType == LexT::IDENT) {
+				if(!tid[curVal].declared)
+					throw "variable wasn't declared";
+				if(tid[curVal].type == LexT::BOOLEAN)
+					throw "trying to read to boolean variable";
+				rpn.push_back(new RpnPut(curType, curVal));
+				readLex();
+			} else
+				throw curLex;
 			assertLex(LexT::CL_PAREN);
 			assertLex(LexT::SEMICOLON);
+			rpn.push_back(new RpnSemicolon);
 			break;
 		case LexT::WRITE:
+		{
+			rpn.push_back(new RpnWrite);
 			readLex();
 			assertLex(LexT::OP_PAREN);
+			rpn.push_back(nullptr);
+			int ind = rpn.size() - 1;
 			ntExpr();
+			int argc = 1;
 			while(curType == LexT::COMMA) {
 				readLex();
 				ntExpr();
+				argc++;
 			}
+			rpn[ind] = new RpnArgc(argc);
 			assertLex(LexT::CL_PAREN);
 			assertLex(LexT::SEMICOLON);
+			rpn.push_back(new RpnSemicolon);
 			break;
+		}
 		case LexT::OP_BRACE:
 			ntComplOper();
 			break;
@@ -390,9 +425,24 @@ void Parser::ntExprOper()
 	ntIn; //DEBUG
 	ntExpr();
 	assertLex(LexT::SEMICOLON);
+	rpn.push_back(new RpnSemicolon);
 	ntOut; //DEBUG
 }
 
+void Parser::ntExpr()
+{
+	ntIn; //DEBUG
+	ntExpr5();
+	if(curType == LexT::ASSIGN) {
+		stType.push(curType);
+		readLex();
+		ntExpr();
+		checkOp();
+	}
+	ntOut; //DEBUG
+}
+
+/*
 void Parser::ntExpr()
 {
 	ntIn; //DEBUG
@@ -405,6 +455,7 @@ void Parser::ntExpr()
 	}
 	ntOut; //DEBUG
 }
+*/
 
 void Parser::ntExpr5()
 {
@@ -482,6 +533,7 @@ void Parser::ntOperand()
 	switch(curType) {
 		case LexT::IDENT:
 			checkIdent();
+			rpn.push_back(new RpnPut(LexT::IDENT, curVal));
 			readLex();
 			break;
 		case LexT::PLUS:
@@ -491,11 +543,10 @@ void Parser::ntOperand()
 		case LexT::CONST_STRING:
 			stType.push(curType);
 			ntConst();
-			// ntConst выбросило в каждый стек по значению.
-			//   они нам сейчас не нужны
+			// ntConst выбросило в каждый стек по значению
+			rpn.push_back(new RpnPut(stType.top(), stVal.top()));
 			stType.pop();
 			stVal.pop();
-			
 			break;
 		case LexT::NOT:
 			readLex();
@@ -511,4 +562,24 @@ void Parser::ntOperand()
 			throw curLex;
 	}
 	ntOut; //DEBUG
+}
+
+bool opdTypesEq(LexT type1, LexT type2)
+{
+	if(type1 == LexT::INT || type1 == LexT::CONST_INT)
+		return type2 == LexT::INT || type2 == LexT::CONST_INT;
+	if(type1 == LexT::BOOLEAN || type1 == LexT::CONST_BOOLEAN)
+		return type2 == LexT::BOOLEAN || type2 == LexT::CONST_BOOLEAN;
+	if(type1 == LexT::STRING || type1 == LexT::CONST_STRING)
+		return type2 == LexT::STRING || type2 == LexT::CONST_STRING;
+	throw false;
+}
+
+bool isTypename(LexT lexType) {
+	return lexType == LexT::INT || lexType == LexT::BOOLEAN ||
+		lexType == LexT::STRING;
+}
+
+bool isSign(LexT lexType) {
+	return lexType == LexT::PLUS || lexType == LexT::MINUS;
 }

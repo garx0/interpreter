@@ -2,11 +2,7 @@
 
 #include <iostream>
 #include <vector>
-#include <stack>
-#include <algorithm>
 #include <cassert>
-#include <initializer_list>
-#include <fstream>
 
 #include "table.hpp"
 
@@ -55,6 +51,8 @@ enum class LexT {
 	CONST_STRING	= 67,
 	END				= 68
 };
+
+bool isLetter(char c);
 
 struct Ident {
 public:

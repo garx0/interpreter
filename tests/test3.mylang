@@ -6,11 +6,6 @@ program {
 	j = 2 * 3 * 4 + 5 * 6 / 7;
 	k = j % 10 + 1;
 	i = j = k = i + j + k;
-	if(i == 2) {
-		write(i);
-	} else {
-		write(str);
-	}
 	read(f);
 	write(f / 2, i, j, k);
 }
