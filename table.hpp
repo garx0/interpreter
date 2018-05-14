@@ -45,7 +45,8 @@ Table<T>::Table(initializer_list<T> list)
 }
 
 template<class T>
-int Table<T>::size() const {
+int Table<T>::size() const
+{
 	return contents.size() - 1;
 }
 
@@ -70,20 +71,26 @@ int Table<T>::find(const T& elem) const
 }
 
 template<class T>
-int Table<T>::push_back(const T& elem) {
+int Table<T>::push_back(const T& elem)
+{
 	contents.push_back(elem);
 	return size();
 }
 
 template<class T>
-const T& Table<T>::operator[](int ind) const {
+const T& Table<T>::operator[](int ind) const
+{
 	return contents[ind];
 }	
 
 template<class T>
-T& Table<T>::operator[](int ind) {
+T& Table<T>::operator[](int ind)
+{
 	return contents[ind];
 }	
 
 template<class T>
-vector<T> Table<T>::getVector() const {return contents;}
+vector<T> Table<T>::getVector() const
+{
+	return contents;
+}

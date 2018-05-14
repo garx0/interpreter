@@ -52,6 +52,23 @@ class Parser {
 	stack<int> stVal;
 	//RpnContext context;
 	vector<RpnOp*> rpn;
+	int cycles = 0;
+	//  счетчик вложенности циклов программы
+	struct breakInfo {
+		int ind;
+		// индекс rpn-лексемы в массиве rpn, соответствующей данному
+		//   оператору break и ожидающей заполнения адресом выхода
+		//   из цикла вложенности layer
+		int layer;
+		// вложенность цикла, соответствующего этому оператору break
+		//   (равно значению переменной cycles на момент считывания
+		//   данного оператора break)
+		breakInfo(int a_ind, int a_layer): ind(a_ind), layer(a_layer) {}
+	};
+	stack<breakInfo> breaks;
+	// индексы rpn-лексем в rpn-массиве, соответствующие
+	//   операторам break, требующие заполнения адресом
+	//   выхода из цикла
 	void ntProgram();
 	void ntMulDescr();
 	void ntDescr();
@@ -89,6 +106,7 @@ public:
 	/* стандартная конструкция, повторяющаяся много раз в
 	 * процедурах, соотв. нетерминалам
 	 */
+	vector<RpnOp*> getRpn() const;
 };
 
 bool opdTypesEq(LexT type1, LexT type2);

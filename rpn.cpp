@@ -28,7 +28,7 @@ void RpnPut::print(ostream& stream) const
 			stream << (value ? "true" : "false");
 			break;
 		case LexT::STRING:
-			stream << tstr[value];
+			stream << "\"" << tstr[value] << "\"";
 			break;
 		default:
 			assert(false);
@@ -115,14 +115,19 @@ void RpnGt::print(ostream& stream) const
 	stream << ">";
 }
 
-void RpnGo::print(ostream& stream) const
+void RpnJump::print(ostream& stream) const
 {
 	stream << "!";
 }
 
-void RpnFgo::print(ostream& stream) const
+void RpnJumpFalse::print(ostream& stream) const
 {
 	stream << "!f";
+}
+
+void RpnJumpTrue::print(ostream& stream) const
+{
+	stream << "!t";
 }
 
 void RpnLabel::print(ostream& stream) const
@@ -132,11 +137,12 @@ void RpnLabel::print(ostream& stream) const
 
 void RpnAddress::print(ostream& stream) const
 {
+	stream << "&" << tid[ind].name;
 }
 
 void RpnArgc::print(ostream& stream) const
 {
-	stream << num;
+	stream << value;
 }
 
 void RpnRead::print(ostream& stream) const
@@ -149,104 +155,118 @@ void RpnWrite::print(ostream& stream) const
 	stream << "write";
 }
 
-void RpnBinOp::calc(RpnContext& context) const
+void RpnBinOp::execute(RpnContext& context) const
 {
 }
 
-void RpnPut::calc(RpnContext& context) const
+void RpnPut::execute(RpnContext& context) const
 {
 }
 
-void RpnSemicolon::calc(RpnContext& context) const
+void RpnSemicolon::execute(RpnContext& context) const
 {
 }
 
-void RpnAdd::doCalc(RpnContext& context) const
+void RpnAdd::calc(RpnContext& context) const
 {
 }
 
-void RpnSub::doCalc(RpnContext& context) const
+void RpnSub::calc(RpnContext& context) const
 {
 }
 
-void RpnMul::doCalc(RpnContext& context) const
+void RpnMul::calc(RpnContext& context) const
 {
 }
 
-void RpnDiv::doCalc(RpnContext& context) const
+void RpnDiv::calc(RpnContext& context) const
 {
 }
 
-void RpnMod::doCalc(RpnContext& context) const
+void RpnMod::calc(RpnContext& context) const
 {
 }
 
-void RpnAnd::doCalc(RpnContext& context) const
+void RpnAnd::calc(RpnContext& context) const
 {
 }
 
-void RpnOr::doCalc(RpnContext& context) const
+void RpnOr::calc(RpnContext& context) const
 {
 }
 
-void RpnNot::calc(RpnContext& context) const
+void RpnNot::execute(RpnContext& context) const
 {
 }
 
-void RpnEq::doCalc(RpnContext& context) const
+void RpnEq::calc(RpnContext& context) const
 {
 }
 
-void RpnNe::doCalc(RpnContext& context) const
+void RpnNe::calc(RpnContext& context) const
 {
 }
 
-void RpnLe::doCalc(RpnContext& context) const
+void RpnLe::calc(RpnContext& context) const
 {
 }
 
-void RpnGe::doCalc(RpnContext& context) const
+void RpnGe::calc(RpnContext& context) const
 {
 }
 
-void RpnLt::doCalc(RpnContext& context) const
+void RpnLt::calc(RpnContext& context) const
 {
 }
 
-void RpnAssign::doCalc(RpnContext& context) const
+void RpnAssign::calc(RpnContext& context) const
 {
 }
 
-void RpnGt::doCalc(RpnContext& context) const
+void RpnGt::calc(RpnContext& context) const
 {
 }
 
-void RpnGo::calc(RpnContext& context) const
+void RpnJump::execute(RpnContext& context) const
 {
 }
 
-void RpnFgo::calc(RpnContext& context) const
+void RpnJumpFalse::execute(RpnContext& context) const
 {
 }
 
-void RpnLabel::calc(RpnContext& context) const
+void RpnJumpTrue::execute(RpnContext& context) const
 {
 }
 
-void RpnAddress::calc(RpnContext& context) const
+void RpnLabel::execute(RpnContext& context) const
 {
 }
 
-void RpnArgc::calc(RpnContext& context) const
+void RpnAddress::execute(RpnContext& context) const
 {
 }
 
-void RpnRead::calc(RpnContext& context) const
+void RpnArgc::execute(RpnContext& context) const
 {
 }
 
-void RpnWrite::calc(RpnContext& context) const
+void RpnRead::execute(RpnContext& context) const
 {
 }
 
+void RpnWrite::execute(RpnContext& context) const
+{
+}
 
+void idToAddr(RpnOp*& abstrPtr)
+// заменяет rpn-операцию put(значение идентификатора) на
+// операцию-адрес идентификатора
+// (*abstrPtr) должен быть типа RpnPut
+// (*abstrPtr) должен быть порожден при помощи new
+{
+	RpnPut* ptr = dynamic_cast<RpnPut*>(abstrPtr);
+	int value = ptr->getValue();
+	delete abstrPtr;
+	abstrPtr = new RpnAddress(value);
+}

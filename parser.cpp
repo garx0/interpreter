@@ -2,6 +2,7 @@
 #include <vector>
 #include <stack>
 #include <cassert>
+#include <typeinfo>
 
 #include "table.hpp"
 #include "lex.hpp"
@@ -164,10 +165,7 @@ bool Parser::syntaxAnalysis()
 	try {
 		readLex();
 		ntProgram();
-		for(auto &item : rpn) {
-			cout << *item << " ";
-		}
-		cout << endl; 
+		assert(breaks.empty());
 		return true;
 	}
 	catch(const Lex& lex) {
@@ -322,43 +320,98 @@ void Parser::ntOper()
 	ntIn; //DEBUG
 	switch(curType) {
 		case LexT::IF:
-			readLex();
-			assertLex(LexT::OP_PAREN);
-			ntExpr();
-			checkBoolRes();
-			assertLex(LexT::CL_PAREN);	
-			ntOper();
-			if(curType == LexT::ELSE) {
-				readLex();
-				ntOper();
-			}
-			break;
-		case LexT::WHILE:
+		{
 			readLex();
 			assertLex(LexT::OP_PAREN);
 			ntExpr();
 			checkBoolRes();
 			assertLex(LexT::CL_PAREN);
+			int ind1 = rpn.size();
+			rpn.push_back(nullptr); //rpn[ind1]
+			rpn.push_back(new RpnJumpFalse);
 			ntOper();
+			if(curType == LexT::ELSE) {
+				int ind2 = rpn.size();
+				rpn.push_back(nullptr); //rpn[ind2]
+				rpn.push_back(new RpnJump);
+				rpn[ind1] = new RpnLabel(rpn.size());
+				readLex();
+				ntOper();
+				rpn[ind2] = new RpnLabel(rpn.size());
+			} else {
+				rpn[ind1] = new RpnLabel(rpn.size());
+			}
 			break;
-		case LexT::DO:
+		}
+		case LexT::WHILE:
+		{
+			cycles++;
 			readLex();
+			assertLex(LexT::OP_PAREN);
+			int startLabel = rpn.size();
+			ntExpr();
+			checkBoolRes();
+			assertLex(LexT::CL_PAREN);
+			int ind1 = rpn.size();
+			rpn.push_back(nullptr);
+			rpn.push_back(new RpnJumpFalse);
+			ntOper();
+			rpn.push_back(new RpnLabel(startLabel));
+			rpn.push_back(new RpnJump);
+			rpn[ind1] = new RpnLabel(rpn.size());
+			if(!breaks.empty())
+				assert(breaks.top().layer == cycles); //DEBUG
+			while(!breaks.empty()) {
+				if(breaks.top().layer != cycles) {
+					assert(breaks.top().layer == cycles - 1); //DEBUG
+					break;
+				}
+				rpn[breaks.top().ind] = new RpnLabel(rpn.size());
+				breaks.pop();
+			}
+			cycles--;
+			break;
+		}
+		case LexT::DO:
+		{
+			cycles++;
+			readLex();
+			int startLabel = rpn.size();
 			ntOper();
 			assertLex(LexT::WHILE);
 			assertLex(LexT::OP_PAREN);
 			ntExpr();
 			checkBoolRes();
 			assertLex(LexT::CL_PAREN);
+			rpn.push_back(new RpnLabel(startLabel));
+			rpn.push_back(new RpnJumpTrue);
 			assertLex(LexT::SEMICOLON);
 			rpn.push_back(new RpnSemicolon);
+			if(!breaks.empty())
+				assert(breaks.top().layer == cycles); //DEBUG
+			while(!breaks.empty()) {
+				if(breaks.top().layer != cycles) {
+					assert(breaks.top().layer == cycles - 1); //DEBUG
+					break;
+				}
+				rpn[breaks.top().ind] = new RpnLabel(rpn.size());
+				breaks.pop();
+			}
+			cycles--;
 			break;
+		}
 		case LexT::BREAK:
+			cout << "cycles = " << cycles << endl; //DEBUG
+			if(cycles <= 0)
+				throw "\"break\" not inside a cycle";
 			readLex();
+			breaks.push(breakInfo(rpn.size(), cycles));
+			rpn.push_back(nullptr);
+			rpn.push_back(new RpnJump);
 			assertLex(LexT::SEMICOLON);
 			rpn.push_back(new RpnSemicolon);
 			break;
 		case LexT::READ:
-			rpn.push_back(new RpnRead);
 			readLex();
 			assertLex(LexT::OP_PAREN);
 			if(curType == LexT::IDENT) {
@@ -366,21 +419,19 @@ void Parser::ntOper()
 					throw "variable wasn't declared";
 				if(tid[curVal].type == LexT::BOOLEAN)
 					throw "trying to read to boolean variable";
-				rpn.push_back(new RpnPut(curType, curVal));
+				rpn.push_back(new RpnAddress(curVal));
 				readLex();
 			} else
 				throw curLex;
 			assertLex(LexT::CL_PAREN);
+			rpn.push_back(new RpnRead);
 			assertLex(LexT::SEMICOLON);
 			rpn.push_back(new RpnSemicolon);
 			break;
 		case LexT::WRITE:
 		{
-			rpn.push_back(new RpnWrite);
 			readLex();
 			assertLex(LexT::OP_PAREN);
-			rpn.push_back(nullptr);
-			int ind = rpn.size() - 1;
 			ntExpr();
 			int argc = 1;
 			while(curType == LexT::COMMA) {
@@ -388,8 +439,9 @@ void Parser::ntOper()
 				ntExpr();
 				argc++;
 			}
-			rpn[ind] = new RpnArgc(argc);
+			rpn.push_back(new RpnArgc(argc));
 			assertLex(LexT::CL_PAREN);
+			rpn.push_back(new RpnWrite);
 			assertLex(LexT::SEMICOLON);
 			rpn.push_back(new RpnSemicolon);
 			break;
@@ -434,6 +486,9 @@ void Parser::ntExpr()
 	ntIn; //DEBUG
 	ntExpr5();
 	if(curType == LexT::ASSIGN) {
+		int ind = rpn.size() - 1;
+		try{ idToAddr(rpn[ind]); }
+		catch(...) { throw "types mismatch in operation '='"; }
 		stType.push(curType);
 		readLex();
 		ntExpr();
@@ -562,6 +617,11 @@ void Parser::ntOperand()
 			throw curLex;
 	}
 	ntOut; //DEBUG
+}
+
+vector<RpnOp*> Parser::getRpn() const
+{
+	return rpn;
 }
 
 bool opdTypesEq(LexT type1, LexT type2)

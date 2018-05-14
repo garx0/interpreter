@@ -59,7 +59,6 @@ public:
 	string name;
 	LexT type = LexT::LEX_NULL;
 	int value = 0;
-	double realValue = 0.0;
 	bool declared = false;
 	bool assigned = false;
 	

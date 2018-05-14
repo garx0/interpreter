@@ -45,6 +45,7 @@ int main(int argc, const char** argv) {
 		while( getline(input, str) ) {
 			str.clear();
 		}
+		return 1;
 	}
 	vector<Ident> idents = tid.getVector();
 	for(auto& item : idents) {
@@ -54,4 +55,20 @@ int main(int argc, const char** argv) {
 			<< (item.assigned ? "ass" : "!ass") << ", "
 			<< item.value << endl;
 	}
+	vector<RpnOp*> rpn = parser.getRpn();
+	for(auto &item : rpn) {
+		cout << *item << " ";
+	}
+	cout << endl; 
+	for(auto it = rpn.begin(); it != rpn.end(); it++) {
+		cout << "rpn[" << (it - rpn.begin()) << "] = ";
+		if(*it) {
+			cout << **it;
+		} else {
+			cout << "NULLPTR";
+		}
+		cout << endl;
+	}
+	int q = 0;
+	return 0;
 }

@@ -150,7 +150,7 @@ ostream& operator<<(ostream& stream, Lex lexem)
 			stream << (lexem.value ? "true" : "false");
 			break;
 		case LexT::CONST_STRING:
-			stream << tstr[lexem.value];
+			stream << "\"" << tstr[lexem.value] << "\"";
 			break;
 		default:
 			{
