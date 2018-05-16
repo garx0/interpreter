@@ -52,8 +52,11 @@ int main(int argc, const char** argv) {
 		cout << item.name << ", "
 			<< (int) item.type << ", "
 			<< (item.declared ? "decl" : "!decl") << ", "
-			<< (item.assigned ? "ass" : "!ass") << ", "
-			<< item.value << endl;
+			<< (item.assigned ? "ass" : "!ass") << ", ";
+		if(item.type == LexT::STRING)	
+			cout << item.str << endl;
+		else
+			cout << item.value << endl;
 	}
 	const vector<RpnOp*>& rpn = parser.getRpnRef();
 	for(auto &item : rpn) {

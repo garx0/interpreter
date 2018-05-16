@@ -1,0 +1,19 @@
+program {
+	int i = 0, j, k;
+	string str = "aaa", str1;
+	k = 1;
+	j = 0;
+	while(i < 10) {
+		k = k * 2;
+		write("k: ", k, "\n");
+		i = i + 1;
+	}
+	do {
+		j = j + 1;
+	} while(k != 1024);
+	do {
+		j = j + 2;
+		break;
+	} while(true);
+	write("j = ", j, ", k = ", k, ", i = ", i, ", str1 = ", str1, "\n");
+}

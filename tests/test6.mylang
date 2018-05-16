@@ -1,0 +1,19 @@
+program {
+	int i, j, s, a;
+	boolean ok = true;
+	i = s = 0;
+	write(i, " ", s, "\n");
+	while(ok) {
+		read(a);
+		if(a < 0) {
+			write("a < 0!\n");
+			break;
+		}
+		ok = a != 0;
+		write(ok, "\n");
+		s = s + a;
+		write("s = ", s, "\n");
+	}
+	write("ans:", s, "\n");
+}
+		

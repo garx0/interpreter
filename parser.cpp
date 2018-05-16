@@ -261,7 +261,7 @@ void Parser::ntVar()
 		stType.pop();
 		int value = stVal.top();
 		stVal.pop();
-		if(type == LexT::CONST_STRING)
+		if(type == LexT::STRING)
 			tid[ind].str = tstr[value];
 		else
 			tid[ind].value = value;
@@ -284,7 +284,7 @@ void Parser::ntConst()
 		readLex();
 		if(curType == LexT::CONST_INT) {
 			stVal.push(plus ? curVal : -curVal);
-			stType.push(LexT::INT);
+			stType.push(LexT::CONST_INT);
 			readLex();
 		} else {
 			throw curLex;
@@ -412,7 +412,7 @@ void Parser::ntOper()
 			break;
 		}
 		case LexT::BREAK:
-			cout << "cycles = " << cycles << endl; //DEBUG
+			//cout << "cycles = " << cycles << endl; //DEBUG
 			if(cycles <= 0)
 				throw "\"break\" not inside a cycle";
 			readLex();
@@ -584,7 +584,7 @@ void Parser::ntOperand()
 	switch(curType) {
 		case LexT::IDENT:
 			checkIdent();
-			cout << "type: " << (int) curType << endl; //DEBUG
+			//cout << "type: " << (int) curType << endl; //DEBUG
 			rpn.push_back(new RpnPut(curLex));
 			readLex();
 			break;
@@ -594,13 +594,11 @@ void Parser::ntOperand()
 		case LexT::CONST_BOOLEAN:
 		case LexT::CONST_STRING:
 		{
-			stType.push(curType);
 			ntConst();
 			// ntConst выбросило в каждый стек по значению
 			Lex infoLex(stType.top(), stVal.top());
-			cout << "type: " << (int) infoLex.getType() << endl; //DEBUG
+			//cout << "type: " << (int) infoLex.getType() << endl; //DEBUG
 			rpn.push_back(new RpnPut(infoLex));
-			stType.pop();
 			stVal.pop();
 			break;
 		}

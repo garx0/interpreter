@@ -16,16 +16,18 @@ enum RpnT {
 	INT,			//1
 	BOOLEAN,		//2
 	STRING,			//3
-	VAR_INT,		//4
-	VAR_BOOLEAN,	//5
-	VAR_STRING,		//6
-	ADDRESS,		//7
+	ADDR_INT,		//4
+	ADDR_BOOLEAN,	//5
+	ADDR_STRING,	//6
 	LABEL,			//8
 	ARGC			//9
 };
 
 bool rpnEqTypes(RpnT type1, RpnT type2);
-bool isVarType(RpnT type);
+RpnT addrType(RpnT valType);
+RpnT valType(RpnT addrType);
+RpnT addrType(LexT type);
+RpnT valType(LexT type);
 
 struct RpnOperand {
 	RpnT type = RpnT::RPN_NULL;
@@ -54,9 +56,6 @@ struct RpnContext {
 	}
 };
 
-RpnT rpnConvertType(const Lex& lex, const RpnContext& context);
-RpnT rpnConvertType(const Lex& lex);
-
 class RpnOp {
 public:
 	virtual void execute(RpnContext& context) const = 0;
@@ -76,17 +75,15 @@ protected:
 };
 
 class RpnPut: public RpnOp {
-	RpnT type;
+	LexT type;
 	int value;
 public:
-	RpnPut(RpnT a_type = RpnT::RPN_NULL, int a_value = 0):
+	RpnPut(LexT a_type = LexT::LEX_NULL, int a_value = 0):
 		type(a_type), value(a_value) {}
 	RpnPut(Lex lex):
-		type(rpnConvertType(lex)), value(lex.getValue()) {}
-	RpnPut(Lex lex, int a_value):
-		type(rpnConvertType(lex)), value(a_value) {}
+		type(lex.getType()), value(lex.getValue()) {}
 	virtual void execute(RpnContext& context) const override;
-	RpnT getType() const {return type;}
+	LexT getType() const {return type;}
 	int getValue() const {return value;}
 protected:
 	virtual void print(ostream& stream) const override;
@@ -134,29 +131,17 @@ protected:
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnLogOp: public RpnBinOp {
+class RpnAnd: public RpnBinOp {
 protected:
 	virtual RpnOperand calc(const RpnOperand& op1, 
 		const RpnOperand& op2, RpnContext& context) const override;
-	virtual int doCalc(int a, int b) const = 0;
-};
-
-class RpnCmpOp: public RpnBinOp {
-protected:
-	virtual RpnOperand calc(const RpnOperand& op1, 
-		const RpnOperand& op2, RpnContext& context) const override;
-	virtual int doCalc(int a, int b) const = 0;
-};
-
-class RpnAnd: public RpnLogOp {
-protected:
-	virtual int doCalc(int a, int b) const override;
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnOr: public RpnLogOp {
+class RpnOr: public RpnBinOp {
 protected:
-	virtual int doCalc(int a, int b) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
@@ -167,39 +152,45 @@ protected:
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnEq: public RpnCmpOp {
+class RpnEq: public RpnBinOp {
 protected:
-	virtual int doCalc(int a, int b) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnNe: public RpnCmpOp {
+class RpnNe: public RpnBinOp {
 protected:
-	virtual int doCalc(int a, int b) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnLe: public RpnCmpOp {
+class RpnLe: public RpnBinOp {
 protected:
-	virtual int doCalc(int a, int b) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnGe: public RpnCmpOp {
+class RpnGe: public RpnBinOp {
 protected:
-	virtual int doCalc(int a, int b) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnLt: public RpnCmpOp {
+class RpnLt: public RpnBinOp {
 protected:
-	virtual int doCalc(int a, int b) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnGt: public RpnCmpOp {
+class RpnGt: public RpnBinOp {
 protected:
-	virtual int doCalc(int a, int b) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 

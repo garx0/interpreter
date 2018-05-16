@@ -9,68 +9,49 @@
 
 using namespace std;
 
-RpnT rpnConvertType(const Lex& lex, const RpnContext& context)
-// используется на этапе выполнения программы.
-// создаёт тип INT|BOOLEAN|STRING или VAR_(INT|BOOLEAN|STRING) из
-//   лексемы.
+RpnT addrType(RpnT valType)
 {
-	LexT type = lex.getType();
-	switch(type) {
-		case LexT::CONST_INT:
-			return RpnT::INT;
-		case LexT::CONST_BOOLEAN:
-			return RpnT::BOOLEAN;
-		case LexT::CONST_STRING:
-			return RpnT::STRING;
-		case LexT::IDENT:
-		{
-			LexT idType = context.tid[lex.getValue()].type;
-			switch(idType) {
-				case LexT::INT:
-					return RpnT::VAR_INT;
-				case LexT::BOOLEAN:
-					return RpnT::VAR_BOOLEAN;
-				case LexT::STRING:
-					return RpnT::VAR_STRING;
-				default:
-					assert(false);
-			}
-		}	
-		default:
-			assert(false);
+	switch(valType) {
+		case RpnT::INT: return RpnT::ADDR_INT;
+		case RpnT::BOOLEAN: return RpnT::ADDR_BOOLEAN;
+		case RpnT::STRING: return RpnT::ADDR_STRING;
+		default: assert(false);
 	}
 }
 
-RpnT rpnConvertType(const Lex& lex)
-// используется на этапе генерации массива rpn-лексем.
-// создаёт тип INT|BOOLEAN|STRING или VAR_(INT|BOOLEAN|STRING) из
-//   лексемы.
+RpnT valType(RpnT addrType)
 {
-	LexT type = lex.getType();
-	cout << "TYPE = " << (int) type << endl; //DEBUG
+	switch(addrType) {
+		case RpnT::ADDR_INT: return RpnT::INT;
+		case RpnT::ADDR_BOOLEAN: return RpnT::BOOLEAN;
+		case RpnT::ADDR_STRING: return RpnT::STRING;
+		default: assert(false);
+	}
+}
+
+RpnT addrType(LexT type)
+{
 	switch(type) {
-		case LexT::CONST_INT:
-			return RpnT::INT;
-		case LexT::CONST_BOOLEAN:
-			return RpnT::BOOLEAN;
-		case LexT::CONST_STRING:
-			return RpnT::STRING;
-		case LexT::IDENT:
-		{
-			LexT idType = tid[lex.getValue()].type;
-			switch(idType) {
-				case LexT::INT:
-					return RpnT::VAR_INT;
-				case LexT::BOOLEAN:
-					return RpnT::VAR_BOOLEAN;
-				case LexT::STRING:
-					return RpnT::VAR_STRING;
-				default:
-					assert(false);
-			}
-		}	
-		default:
-			assert(false);
+		case LexT::INT:
+		case LexT::CONST_INT:return RpnT::ADDR_INT;
+		case LexT::BOOLEAN: 
+		case LexT::CONST_BOOLEAN: return RpnT::ADDR_BOOLEAN;
+		case LexT::STRING: 
+		case LexT::CONST_STRING: return RpnT::ADDR_STRING;
+		default: assert(false);
+	}
+}
+
+RpnT valType(LexT type)
+{
+	switch(type) {
+		case LexT::INT: return RpnT::INT;
+		case LexT::CONST_INT: return RpnT::INT;
+		case LexT::BOOLEAN: return RpnT::BOOLEAN;
+		case LexT::CONST_BOOLEAN: return RpnT::BOOLEAN;
+		case LexT::STRING: return RpnT::STRING;
+		case LexT::CONST_STRING: return RpnT::STRING;
+		default: assert(false);
 	}
 }
 
@@ -78,28 +59,12 @@ bool rpnEqTypes(RpnT type1, RpnT type2)
 {
 	if(type1 == type2)
 		return true;
-	else if(type1 == RpnT::INT || type1 == RpnT::VAR_INT)
-		return type2 == RpnT::INT || type2 == RpnT::VAR_INT;
-	else if(type1 == RpnT::BOOLEAN || type1 == RpnT::VAR_BOOLEAN)
-		return type2 == RpnT::BOOLEAN || type2 == RpnT::VAR_BOOLEAN;
-	else if(type1 == RpnT::STRING || type1 == RpnT::VAR_STRING)
-		return type2 == RpnT::STRING || type2 == RpnT::VAR_STRING;
-}
-
-bool isVarType(RpnT type)
-{
-	switch(type) {
-		case RpnT::VAR_INT:
-		case RpnT::VAR_BOOLEAN:
-		case RpnT::VAR_STRING:
-			return true;
-		case RpnT::INT:
-		case RpnT::BOOLEAN:
-		case RpnT::STRING:
-			return false;
-		default:
-			assert(false);
-	}
+	else if(type1 == RpnT::INT || type1 == RpnT::ADDR_INT)
+		return type2 == RpnT::INT || type2 == RpnT::ADDR_INT;
+	else if(type1 == RpnT::BOOLEAN || type1 == RpnT::ADDR_BOOLEAN)
+		return type2 == RpnT::BOOLEAN || type2 == RpnT::ADDR_BOOLEAN;
+	else if(type1 == RpnT::STRING || type1 == RpnT::ADDR_STRING)
+		return type2 == RpnT::STRING || type2 == RpnT::ADDR_STRING;
 }
 	
 ostream& operator<<(ostream& stream, const RpnOp& op)
@@ -111,18 +76,16 @@ ostream& operator<<(ostream& stream, const RpnOp& op)
 void RpnPut::print(ostream& stream) const
 {
 	switch(type) {
-		case RpnT::VAR_INT:
-		case RpnT::VAR_BOOLEAN:
-		case RpnT::VAR_STRING:
+		case LexT::IDENT:
 			stream << tid[value].name;
 			break;
-		case RpnT::INT:
+		case LexT::CONST_INT:
 			stream << value;
 			break;
-		case RpnT::BOOLEAN:
+		case LexT::CONST_BOOLEAN:
 			stream << (value ? "true" : "false");
 			break;
-		case RpnT::STRING:
+		case LexT::CONST_STRING:
 			stream << "\"" << tstr[value] << "\"";
 			break;
 		default:
@@ -264,8 +227,23 @@ void RpnBinOp::execute(RpnContext& context) const
 
 void RpnPut::execute(RpnContext& context) const
 {
-	cout << "RPNPUT:TYPE=" << (int) type << endl; //DEBUG
-	context.st.push(RpnOperand(type, value));
+	RpnOperand res;
+	if(type == LexT::IDENT) {
+		Ident id = context.tid[value];
+		if(!id.assigned) {
+			throw ("runtime error: variable" + id.name + "not assigned");
+		}
+		if(id.type == LexT::STRING) {
+			res = {RpnT::STRING, id.str};
+		} else {
+			res = {valType(id.type), id.value};
+		}
+	} else if(type == LexT::CONST_STRING) {
+		res = {RpnT::STRING, context.tstr[value]};
+	} else {
+		res = {valType(type), value};
+	}
+	context.st.push(res);
 	context.eip++;
 }
 
@@ -281,79 +259,55 @@ void RpnSemicolon::execute(RpnContext& context) const
 RpnOperand RpnAdd::calc(const RpnOperand& op1, 
 	const RpnOperand& op2, RpnContext& context) const
 {
-	RpnT type = rpnEqTypes(op1.type, RpnT::INT) ? RpnT::INT : RpnT::STRING;
-	assert(rpnEqTypes(op2.type, type)); //DEBUG
+	RpnT type = op1.type;
+	assert(op2.type == type); //DEBUG
 	if(type == RpnT::INT) {
-		int value1, value2;
-		value1 = isVarType(op1.type) ? context.tid[op1.value].value : op1.value;
-		value2 = isVarType(op2.type) ? context.tid[op2.value].value : op2.value;
-		return RpnOperand(type, value1 + value2);
+		return RpnOperand(type, op1.value + op2.value);
 	} else {
-		string str1, str2;
-		str1 = isVarType(op1.type) ? context.tid[op1.value].str : op1.str;
-		str2 = isVarType(op2.type) ? context.tid[op2.value].str : op2.str;
-		return RpnOperand(type, str1 + str2);
+		return RpnOperand(type, op1.str + op2.str);
 	}
 }
 
 RpnOperand RpnSub::calc(const RpnOperand& op1, 
 	const RpnOperand& op2, RpnContext& context) const
 {
-	assert((rpnEqTypes(op1.type, RpnT::INT) && rpnEqTypes(op2.type, RpnT::INT))); //DEBUG
-	int value1, value2;
-	value1 = isVarType(op1.type) ? context.tid[op1.value].value : op1.value;
-	value2 = isVarType(op2.type) ? context.tid[op2.value].value : op2.value;
-	return RpnOperand(RpnT::INT, value1 - value2);
+	assert(op1.type == op2.type && op1.type == RpnT::INT); //DEBUG
+	return RpnOperand(RpnT::INT, op1.value - op2.value);
 }
 
 RpnOperand RpnMul::calc(const RpnOperand& op1, 
 	const RpnOperand& op2, RpnContext& context) const
 {
-	assert((rpnEqTypes(op1.type, RpnT::INT) && rpnEqTypes(op2.type, RpnT::INT))); //DEBUG
-	int value1, value2;
-	value1 = isVarType(op1.type) ? context.tid[op1.value].value : op1.value;
-	value2 = isVarType(op2.type) ? context.tid[op2.value].value : op2.value;
-	return RpnOperand(RpnT::INT, value1 * value2);
+	assert(op1.type == op2.type && op1.type == RpnT::INT); //DEBUG
+	return RpnOperand(RpnT::INT, op1.value * op2.value);
 }
 
 RpnOperand RpnDiv::calc(const RpnOperand& op1, 
 	const RpnOperand& op2, RpnContext& context) const
 {
-	assert((rpnEqTypes(op1.type, RpnT::INT) && rpnEqTypes(op2.type, RpnT::INT))); //DEBUG
-	int value1, value2;
-	value1 = isVarType(op1.type) ? context.tid[op1.value].value : op1.value;
-	value2 = isVarType(op2.type) ? context.tid[op2.value].value : op2.value;
-	return RpnOperand(RpnT::INT, value1 / value2);
+	assert(op1.type == op2.type && op1.type == RpnT::INT); //DEBUG
+	return RpnOperand(RpnT::INT, op1.value / op2.value);
 }
 
 RpnOperand RpnMod::calc(const RpnOperand& op1, 
 	const RpnOperand& op2, RpnContext& context) const
 {
-	assert((rpnEqTypes(op1.type, RpnT::INT) && rpnEqTypes(op2.type, RpnT::INT))); //DEBUG
-	int value1, value2;
-	value1 = isVarType(op1.type) ? context.tid[op1.value].value : op1.value;
-	value2 = isVarType(op2.type) ? context.tid[op2.value].value : op2.value;
-	return RpnOperand(RpnT::INT, value1 % value2);
+	assert(op1.type == op2.type && op1.type == RpnT::INT); //DEBUG
+	return RpnOperand(RpnT::INT, op1.value % op2.value);
 }
 
-RpnOperand RpnLogOp::calc(const RpnOperand& op1, 
+RpnOperand RpnAnd::calc(const RpnOperand& op1, 
 	const RpnOperand& op2, RpnContext& context) const
 {
-	assert((rpnEqTypes(op1.type, RpnT::BOOLEAN) && rpnEqTypes(op2.type, RpnT::BOOLEAN))); //DEBUG
-	int value1, value2;
-	value1 = isVarType(op1.type) ? context.tid[op1.value].value : op1.value;
-	value2 = isVarType(op2.type) ? context.tid[op2.value].value : op2.value;
-	return RpnOperand(RpnT::BOOLEAN, doCalc(value1, value2));
+	assert(op1.type == op2.type && op1.type == RpnT::BOOLEAN); //DEBUG
+	return RpnOperand(RpnT::BOOLEAN, op1.value & op2.value);
 }
 
-int RpnAnd::doCalc(int a, int b) const
+RpnOperand RpnOr::calc(const RpnOperand& op1, 
+	const RpnOperand& op2, RpnContext& context) const
 {
-	return a & b;
-}
-
-int RpnOr::doCalc(int a, int b) const
-{
-	return a | b;
+	assert(op1.type == op2.type && op1.type == RpnT::BOOLEAN); //DEBUG
+	return RpnOperand(RpnT::BOOLEAN, op1.value | op2.value);
 }
 
 void RpnNot::execute(RpnContext& context) const
@@ -361,77 +315,82 @@ void RpnNot::execute(RpnContext& context) const
 	RpnOperand op, res;
 	op = context.st.top();
 	context.st.pop();
-	assert(rpnEqTypes(op.type, RpnT::BOOLEAN)); //DEBUG
-	int value;
-	value = isVarType(op.type) ? context.tid[op.value].value : op.value;
-	context.st.push(RpnOperand(RpnT::BOOLEAN, ~value));
+	assert(op.type == RpnT::BOOLEAN); //DEBUG
+	context.st.push(RpnOperand(RpnT::BOOLEAN, ~op.value));
 	context.eip++;
 }
 
-RpnOperand RpnCmpOp::calc(const RpnOperand& op1, 
+RpnOperand RpnEq::calc(const RpnOperand& op1, 
 	const RpnOperand& op2, RpnContext& context) const
 {
-	RpnT type;
-	if(rpnEqTypes(op1.type, RpnT::INT))
-		type = RpnT::INT;
-	else if(rpnEqTypes(op1.type, RpnT::BOOLEAN))
-		type = RpnT::BOOLEAN;
-	else {
-		assert(rpnEqTypes(op1.type, RpnT::STRING));
-		type = RpnT::STRING;
-	}
-	assert(rpnEqTypes(op2.type, type)); //DEBUG
-	int value1, value2;
-	value1 = isVarType(op1.type) ? context.tid[op1.value].value : op1.value;
-	value2 = isVarType(op2.type) ? context.tid[op2.value].value : op2.value;
-	return RpnOperand(RpnT::BOOLEAN, doCalc(value1, value2));
+	assert(op1.type == op2.type); //DEBUG
+	if(op1.type == RpnT::STRING)
+		return RpnOperand(RpnT::BOOLEAN, op1.str == op2.str);
+	else
+		return RpnOperand(RpnT::BOOLEAN, op1.value == op2.value);
 }
 
-int RpnEq::doCalc(int a, int b) const
+RpnOperand RpnNe::calc(const RpnOperand& op1, 
+	const RpnOperand& op2, RpnContext& context) const
 {
-	return a == b;
+	assert(op1.type == op2.type); //DEBUG
+	if(op1.type == RpnT::STRING)
+		return RpnOperand(RpnT::BOOLEAN, op1.str != op2.str);
+	else
+		return RpnOperand(RpnT::BOOLEAN, op1.value != op2.value);
 }
 
-int RpnNe::doCalc(int a, int b) const
+RpnOperand RpnLe::calc(const RpnOperand& op1, 
+	const RpnOperand& op2, RpnContext& context) const
 {
-	return a != b;
+	assert(op1.type == op2.type); //DEBUG
+	if(op1.type == RpnT::STRING)
+		return RpnOperand(RpnT::BOOLEAN, op1.str <= op2.str);
+	else
+		return RpnOperand(RpnT::BOOLEAN, op1.value <= op2.value);
 }
 
-int RpnLe::doCalc(int a, int b) const
+RpnOperand RpnGe::calc(const RpnOperand& op1, 
+	const RpnOperand& op2, RpnContext& context) const
 {
-	return a <= b;
+	assert(op1.type == op2.type); //DEBUG
+	if(op1.type == RpnT::STRING)
+		return RpnOperand(RpnT::BOOLEAN, op1.str >= op2.str);
+	else
+		return RpnOperand(RpnT::BOOLEAN, op1.value >= op2.value);
 }
 
-int RpnGe::doCalc(int a, int b) const
+RpnOperand RpnLt::calc(const RpnOperand& op1, 
+	const RpnOperand& op2, RpnContext& context) const
 {
-	return a >= b;
+	assert(op1.type == op2.type); //DEBUG
+	if(op1.type == RpnT::STRING)
+		return RpnOperand(RpnT::BOOLEAN, op1.str < op2.str);
+	else
+		return RpnOperand(RpnT::BOOLEAN, op1.value < op2.value);
 }
 
-int RpnLt::doCalc(int a, int b) const
+RpnOperand RpnGt::calc(const RpnOperand& op1, 
+	const RpnOperand& op2, RpnContext& context) const
 {
-	return a < b;
-}
-
-int RpnGt::doCalc(int a, int b) const
-{
-	return a > b;
+	assert(op1.type == op2.type); //DEBUG
+	if(op1.type == RpnT::STRING)
+		return RpnOperand(RpnT::BOOLEAN, op1.str > op2.str);
+	else
+		return RpnOperand(RpnT::BOOLEAN, op1.value > op2.value);
 }
 
 RpnOperand RpnAssign::calc(const RpnOperand& op1, 
 	const RpnOperand& op2, RpnContext& context) const
 {
-	assert(op1.type == RpnT::ADDRESS);
-	RpnT varType = rpnConvertType(Lex(LexT::IDENT, op1.value), context);
-	//varType == VAR_(INT|BOOLEAN|STRING)
-	assert(rpnEqTypes(varType, op2.type));
+	valType(op1.type); //DEBUG
+	assert(addrType(op2.type) == op1.type); //DEBUG
 	context.tid[op1.value].assigned = true;
-	RpnT type;
-	if(varType == RpnT::VAR_STRING) {
-		type = RpnT::STRING;
+	RpnT type = valType(op1.type);
+	if(op1.type == RpnT::ADDR_STRING) {
 		context.tid[op1.value].str = op2.str;
 		return RpnOperand(type, op2.str);
 	} else {
-		type = (varType == RpnT::VAR_INT) ? RpnT::INT : RpnT::BOOLEAN;
 		context.tid[op1.value].value = op2.value;
 		return RpnOperand(type, op2.value);
 	}
@@ -472,7 +431,7 @@ void RpnLabel::execute(RpnContext& context) const
 
 void RpnAddress::execute(RpnContext& context) const
 {
-	context.st.push(RpnOperand(RpnT::ADDRESS, value));
+	context.st.push(RpnOperand(addrType(context.tid[value].type), value));
 	context.eip++;
 }
 
@@ -486,10 +445,9 @@ void RpnRead::execute(RpnContext& context) const
 {
 	RpnOperand op = context.st.top();
 	context.st.pop();
-	assert(op.type == RpnT::ADDRESS);
-	RpnT varType = rpnConvertType(Lex(LexT::IDENT, op.value), context);
-	assert(varType != VAR_BOOLEAN);
-	if(varType == RpnT::VAR_INT) {
+	valType(op.type); //DEBUG
+	assert(op.type != ADDR_BOOLEAN);
+	if(op.type == RpnT::ADDR_INT) {
 		int res;
 		cin >> res;
 		context.tid[op.value].value = res;
@@ -507,28 +465,27 @@ void RpnWrite::execute(RpnContext& context) const
 	assert(context.st.top().type == RpnT::ARGC);
 	int argc = context.st.top().value;
 	context.st.pop();
+	stack<RpnOperand> argv;
 	for(int i = 0; i < argc; i++) {
-		RpnOperand op = context.st.top();
+		argv.push(context.st.top());
 		context.st.pop();
+	}
+	while(!argv.empty()) {
+		RpnOperand op = argv.top();
+		argv.pop();
 		switch(op.type) {
 			case INT:
 				cout << op.value;
 				break;
 			case BOOLEAN:
-				cout << op.value ? "true" : "false";
+				cout << (op.value ? "true" : "false");
 				break;
 			case STRING:
+				cout << "writing string:"; //DEBUG
 				cout << op.str;
 				break;
-			case VAR_INT:
-				cout << context.tid[op.value].value;
-				break;
-			case VAR_BOOLEAN:
-				cout << context.tid[op.value].value ? "true" : "false";
-				break;
-			case VAR_STRING:
-				cout << context.tid[op.value].str;
-				break;
+			default:
+				assert(false);
 		}
 	}
 	context.st.push(RpnOperand());
@@ -558,7 +515,7 @@ void RpnProgram::execute()
 {
 	int progSize = rpn.size();
 	while(context.eip < progSize) {
-		cout << "eip=" << context.eip << endl; //DEBUG
+		//cout << "eip=" << context.eip << endl; //DEBUG
 		rpn[context.eip]->execute(context);
 	}
 }

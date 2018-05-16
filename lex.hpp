@@ -59,7 +59,7 @@ public:
 	string name;
 	LexT type = LexT::LEX_NULL;
 	int value = 0;
-	string str = "TEST"; // = nullptr => runtime error, find out why (V)
+	string str = ""; // = nullptr => runtime error, find out why (V)
 	bool declared = false;
 	bool assigned = false;
 	
