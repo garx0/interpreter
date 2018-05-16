@@ -18,5 +18,5 @@ program {
 		}
 	}
 	/*write("j = ", j, ", k = ", k, "\n");*/
-	write(j, " ", k);
+	write(j, " string ", k);
 }

@@ -18,6 +18,7 @@ class Table {
 public:
 	Table(): contents{ T() } {}
 	Table(initializer_list<T> list);
+	Table(const Table<T>& table);
 	//список: {элементы, начиная с 1-го}
 	int size() const;
 	int put(const T& elem);
@@ -30,9 +31,10 @@ public:
 	//вставляет в конец элемент и возвращает его номер
 	const T& operator[](int ind) const;
 	T& operator[](int ind);
-	vector<T> getVector() const;
+	vector<T> getVectorCopy() const;
 	//выдает вектор, где нулевой элемент пустой, остальные элементы
 	//	(с 1-го) - элементы таблицы
+	const vector<T>& getVectorRef() const;
 };
 
 template<class T>
@@ -42,6 +44,12 @@ Table<T>::Table(initializer_list<T> list)
 	for(auto& item : list) {
 		contents.push_back(item);
 	}
+}
+
+template<class T>
+Table<T>::Table(const Table<T>& table)
+{
+	contents = table.getVectorRef();
 }
 
 template<class T>
@@ -90,7 +98,13 @@ T& Table<T>::operator[](int ind)
 }	
 
 template<class T>
-vector<T> Table<T>::getVector() const
+vector<T> Table<T>::getVectorCopy() const
+{
+	return contents;
+}
+
+template<class T>
+const vector<T>& Table<T>::getVectorRef() const
 {
 	return contents;
 }

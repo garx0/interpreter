@@ -110,7 +110,8 @@ public:
 	/* стандартная конструкция, повторяющаяся много раз в
 	 * процедурах, соотв. нетерминалам
 	 */
-	vector<RpnOp*> getRpn() const;
+	vector<RpnOp*> getRpnCopy() const;
+	const vector<RpnOp*>& getRpnRef() const;
 };
 
 bool opdTypesEq(LexT type1, LexT type2);

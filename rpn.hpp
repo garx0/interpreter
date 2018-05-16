@@ -7,38 +7,55 @@
 
 #include "table.hpp"
 #include "lex.hpp"
+//~ #include "parser.hpp"
 
 using namespace std;
 
 enum RpnT {
-	RPN_NULL,
-	INT,
-	BOOLEAN,
-	STRING,
-	VAR_INT,
-	VAR_BOOLEAN,
-	VAR_STRING,
-	ADDRESS,
-	LABEL,
-	ARGC
+	RPN_NULL,		//0
+	INT,			//1
+	BOOLEAN,		//2
+	STRING,			//3
+	VAR_INT,		//4
+	VAR_BOOLEAN,	//5
+	VAR_STRING,		//6
+	ADDRESS,		//7
+	LABEL,			//8
+	ARGC			//9
 };
 
-RpnT convertType(const Lex& lex);
 bool rpnEqTypes(RpnT type1, RpnT type2);
 bool isVarType(RpnT type);
 
 struct RpnOperand {
 	RpnT type = RpnT::RPN_NULL;
-	int value = 0;
+	int value;
+	string str;
 	RpnOperand() = default;
 	RpnOperand(RpnT a_type, int a_value):
 		type(a_type), value(a_value) {}
+	RpnOperand(RpnT a_type, string a_str):
+		type(a_type), str(a_str)
+	{
+		assert(rpnEqTypes(a_type, RpnT::STRING)); //DEBUG
+	}
 };
 
 struct RpnContext {
 	stack<RpnOperand> st;
-	int eip; //изменяется при проходе по массиву RpnOp
+	int eip = 0;
+	Table<Ident> tid;
+	Table<string> tstr;
+	
+	RpnContext(Table<Ident> a_tid, Table<string> a_tstr) 
+	{
+		tid = a_tid;
+		tstr = a_tstr;
+	}
 };
+
+RpnT rpnConvertType(const Lex& lex, const RpnContext& context);
+RpnT rpnConvertType(const Lex& lex);
 
 class RpnOp {
 public:
@@ -54,7 +71,8 @@ class RpnBinOp: public RpnOp {
 public:
 	virtual void execute(RpnContext& context) const override;
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const = 0;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const = 0;
 };
 
 class RpnPut: public RpnOp {
@@ -64,9 +82,9 @@ public:
 	RpnPut(RpnT a_type = RpnT::RPN_NULL, int a_value = 0):
 		type(a_type), value(a_value) {}
 	RpnPut(Lex lex):
-		type(convertType(lex)), value(lex.getValue()) {}
+		type(rpnConvertType(lex)), value(lex.getValue()) {}
 	RpnPut(Lex lex, int a_value):
-		type(convertType(lex)), value(a_value) {}
+		type(rpnConvertType(lex)), value(a_value) {}
 	virtual void execute(RpnContext& context) const override;
 	RpnT getType() const {return type;}
 	int getValue() const {return value;}
@@ -83,43 +101,50 @@ protected:
 
 class RpnAdd: public RpnBinOp {
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnSub: public RpnBinOp {
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnMul: public RpnBinOp {
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnDiv: public RpnBinOp {
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnMod: public RpnBinOp {
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnLogOp: public RpnBinOp {
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual int doCalc(int a, int b) const = 0;
 };
 
 class RpnCmpOp: public RpnBinOp {
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual int doCalc(int a, int b) const = 0;
 };
 
@@ -180,7 +205,8 @@ protected:
 
 class RpnAssign: public RpnBinOp {
 protected:
-	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
@@ -191,33 +217,33 @@ protected:
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnJumpFalse: public RpnOp {
-public:
-	virtual void execute(RpnContext& context) const override;
+class RpnJumpTrue: public RpnBinOp {
 protected:
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
-class RpnJumpTrue: public RpnOp {
-public:
-	virtual void execute(RpnContext& context) const override;
+class RpnJumpFalse: public RpnBinOp {
 protected:
+	virtual RpnOperand calc(const RpnOperand& op1, 
+		const RpnOperand& op2, RpnContext& context) const override;
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnLabel: public RpnOp {
-	int address;
+	int value;
 public:
-	RpnLabel(int a_address = 0): address(a_address) {}
+	RpnLabel(int a_value = 0): value(a_value) {}
 	virtual void execute(RpnContext& context) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnAddress: public RpnOp {
-	int ind;
+	int value;
 public:
-	RpnAddress(int a_ind = 0): ind(a_ind) {}
+	RpnAddress(int a_value = 0): value(a_value) {}
 	virtual void execute(RpnContext& context) const override;
 protected:
 	virtual void print(ostream& stream) const override;
@@ -253,3 +279,15 @@ void idToAddr(RpnOp*& abstrPtr);
 // операцию-адрес идентификатора
 // (*abstrPtr) должен быть типа RpnPut
 // (*abstrPtr) должен быть порожден при помощи new
+
+class RpnProgram {
+	vector<RpnOp*> rpn;
+	RpnContext context;
+public:
+	RpnProgram(const vector<RpnOp*>& a_rpn,
+		const Table<Ident>& a_tid, const Table<string>& a_tstr);
+	//~ RpnProgram(const Parser& parser,
+		//~ const Table<Ident>& a_tid, const Table<string>& a_tstr);
+	void execute();
+};
+	

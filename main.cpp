@@ -47,7 +47,7 @@ int main(int argc, const char** argv) {
 		}
 		return 1;
 	}
-	vector<Ident> idents = tid.getVector();
+	const vector<Ident>& idents = tid.getVectorRef();
 	for(auto& item : idents) {
 		cout << item.name << ", "
 			<< (int) item.type << ", "
@@ -55,7 +55,7 @@ int main(int argc, const char** argv) {
 			<< (item.assigned ? "ass" : "!ass") << ", "
 			<< item.value << endl;
 	}
-	vector<RpnOp*> rpn = parser.getRpn();
+	const vector<RpnOp*>& rpn = parser.getRpnRef();
 	for(auto &item : rpn) {
 		cout << *item << " ";
 	}
@@ -69,5 +69,8 @@ int main(int argc, const char** argv) {
 		}
 		cout << endl;
 	}
+	RpnProgram prog(parser.getRpnRef(), tid, tstr);
+	cout << "EXECUTE\n\n";
+	prog.execute();
 	return 0;
 }

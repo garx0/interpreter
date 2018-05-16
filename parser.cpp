@@ -255,11 +255,16 @@ void Parser::ntVar()
 	if(curType == LexT::ASSIGN) {
 		readLex();
 		ntConst();
-		if(stType.top() != tid[ind].type)
+		LexT type = tid[ind].type;
+		if(!opdTypesEq(stType.top(), type))
 			throw "initialization types mismatch";
 		stType.pop();
-		tid[ind].value = stVal.top();
+		int value = stVal.top();
 		stVal.pop();
+		if(type == LexT::CONST_STRING)
+			tid[ind].str = tstr[value];
+		else
+			tid[ind].value = value;
 		tid[ind].assigned = true;
 	}
 	ntOut; //DEBUG
@@ -287,17 +292,17 @@ void Parser::ntConst()
 	} else switch(curType) {
 		case LexT::CONST_INT:
 			stVal.push(curVal);
-			stType.push(LexT::INT);
+			stType.push(LexT::CONST_INT);
 			readLex();
 			break;
 		case LexT::CONST_BOOLEAN:
 			stVal.push(curVal);
-			stType.push(LexT::BOOLEAN);
+			stType.push(LexT::CONST_BOOLEAN);
 			readLex();
 			break;
 		case LexT::CONST_STRING:
 			stVal.push(curVal);
-			stType.push(LexT::STRING);
+			stType.push(LexT::CONST_STRING);
 			readLex();
 			break;
 		default:
@@ -579,6 +584,7 @@ void Parser::ntOperand()
 	switch(curType) {
 		case LexT::IDENT:
 			checkIdent();
+			cout << "type: " << (int) curType << endl; //DEBUG
 			rpn.push_back(new RpnPut(curLex));
 			readLex();
 			break;
@@ -592,6 +598,7 @@ void Parser::ntOperand()
 			ntConst();
 			// ntConst выбросило в каждый стек по значению
 			Lex infoLex(stType.top(), stVal.top());
+			cout << "type: " << (int) infoLex.getType() << endl; //DEBUG
 			rpn.push_back(new RpnPut(infoLex));
 			stType.pop();
 			stVal.pop();
@@ -613,7 +620,12 @@ void Parser::ntOperand()
 	ntOut; //DEBUG
 }
 
-vector<RpnOp*> Parser::getRpn() const
+vector<RpnOp*> Parser::getRpnCopy() const
+{
+	return rpn;
+}
+
+const vector<RpnOp*>& Parser::getRpnRef() const
 {
 	return rpn;
 }
