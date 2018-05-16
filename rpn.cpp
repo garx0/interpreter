@@ -43,7 +43,7 @@ RpnT convertType(const Lex& lex)
 	}
 }
 
-bool RpnEqTypes(RpnT type1, RpnT type2)
+bool rpnEqTypes(RpnT type1, RpnT type2)
 {
 	if(type1 == type2)
 		return true;
@@ -53,6 +53,22 @@ bool RpnEqTypes(RpnT type1, RpnT type2)
 		return type2 == RpnT::BOOLEAN || type2 == RpnT::VAR_BOOLEAN;
 	else if(type1 == RpnT::STRING || type1 == RpnT::VAR_STRING)
 		return type2 == RpnT::STRING || type2 == RpnT::VAR_STRING;
+}
+
+bool isVarType(RpnT type)
+{
+	switch(type) {
+		case RpnT::VAR_INT:
+		case RpnT::VAR_BOOLEAN:
+		case RpnT::VAR_STRING:
+			return true;
+		case RpnT::INT:
+		case RpnT::BOOLEAN:
+		case RpnT::STRING:
+			return false;
+		default:
+			assert(false);
+	}
 }
 	
 ostream& operator<<(ostream& stream, const RpnOp& op)
@@ -226,61 +242,129 @@ void RpnSemicolon::execute(RpnContext& context) const
 
 RpnOperand RpnAdd::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
+	RpnT type = rpnEqTypes(op1.type, RpnT::INT) ? RpnT::INT : RpnT::STRING;
+	assert(rpnEqTypes(op2.type, type)); //DEBUG
+	int value1, value2;
+	value1 = isVarType(op1.type) ? tid[op1.value].value : op1.value;
+	value2 = isVarType(op2.type) ? tid[op2.value].value : op2.value;
+	return RpnOperand(type, value1 + value2);
 }
 
 RpnOperand RpnSub::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
+	assert((rpnEqTypes(op1.type, RpnT::INT) && rpnEqTypes(op2.type, RpnT::INT))); //DEBUG
+	int value1, value2;
+	value1 = isVarType(op1.type) ? tid[op1.value].value : op1.value;
+	value2 = isVarType(op2.type) ? tid[op2.value].value : op2.value;
+	return RpnOperand(RpnT::INT, value1 - value2);
 }
 
 RpnOperand RpnMul::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
+	assert((rpnEqTypes(op1.type, RpnT::INT) && rpnEqTypes(op2.type, RpnT::INT))); //DEBUG
+	int value1, value2;
+	value1 = isVarType(op1.type) ? tid[op1.value].value : op1.value;
+	value2 = isVarType(op2.type) ? tid[op2.value].value : op2.value;
+	return RpnOperand(RpnT::INT, value1 * value2);
 }
 
 RpnOperand RpnDiv::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
+	assert((rpnEqTypes(op1.type, RpnT::INT) && rpnEqTypes(op2.type, RpnT::INT))); //DEBUG
+	int value1, value2;
+	value1 = isVarType(op1.type) ? tid[op1.value].value : op1.value;
+	value2 = isVarType(op2.type) ? tid[op2.value].value : op2.value;
+	return RpnOperand(RpnT::INT, value1 / value2);
 }
 
 RpnOperand RpnMod::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
+	assert((rpnEqTypes(op1.type, RpnT::INT) && rpnEqTypes(op2.type, RpnT::INT))); //DEBUG
+	int value1, value2;
+	value1 = isVarType(op1.type) ? tid[op1.value].value : op1.value;
+	value2 = isVarType(op2.type) ? tid[op2.value].value : op2.value;
+	return RpnOperand(RpnT::INT, value1 % value2);
 }
 
-RpnOperand RpnAnd::calc(const RpnOperand& op1, const RpnOperand& op2) const
+RpnOperand RpnLogOp::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
+	assert((rpnEqTypes(op1.type, RpnT::BOOLEAN) && rpnEqTypes(op2.type, RpnT::BOOLEAN))); //DEBUG
+	int value1, value2;
+	value1 = isVarType(op1.type) ? tid[op1.value].value : op1.value;
+	value2 = isVarType(op2.type) ? tid[op2.value].value : op2.value;
+	return RpnOperand(RpnT::BOOLEAN, doCalc(value1, value2));
 }
 
-RpnOperand RpnOr::calc(const RpnOperand& op1, const RpnOperand& op2) const
+int RpnAnd::doCalc(int a, int b) const
 {
+	return a & b;
+}
+
+int RpnOr::doCalc(int a, int b) const
+{
+	return a | b;
 }
 
 void RpnNot::execute(RpnContext& context) const
 {
+	RpnOperand op, res;
+	op = context.st.top();
+	context.st.pop();
+	assert(rpnEqTypes(op.type, RpnT::BOOLEAN)); //DEBUG
+	int value;
+	value = isVarType(op.type) ? tid[op.value].value : op.value;
+	context.st.push(RpnOperand(RpnT::BOOLEAN, ~value));
 }
 
-RpnOperand RpnEq::calc(const RpnOperand& op1, const RpnOperand& op2) const
+RpnOperand RpnCmpOp::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
+	RpnT type;
+	if(rpnEqTypes(op1.type, RpnT::INT))
+		type = RpnT::INT;
+	else if(rpnEqTypes(op1.type, RpnT::BOOLEAN))
+		type = RpnT::BOOLEAN;
+	else {
+		assert(rpnEqTypes(op1.type, RpnT::STRING));
+		type = RpnT::STRING;
+	}
+	assert(rpnEqTypes(op2.type, type)); //DEBUG
+	int value1, value2;
+	value1 = isVarType(op1.type) ? tid[op1.value].value : op1.value;
+	value2 = isVarType(op2.type) ? tid[op2.value].value : op2.value;
+	return RpnOperand(RpnT::BOOLEAN, doCalc(value1, value2));
 }
 
-RpnOperand RpnNe::calc(const RpnOperand& op1, const RpnOperand& op2) const
+int RpnEq::doCalc(int a, int b) const
 {
+	return a == b;
 }
 
-RpnOperand RpnLe::calc(const RpnOperand& op1, const RpnOperand& op2) const
+int RpnNe::doCalc(int a, int b) const
 {
+	return a != b;
 }
 
-RpnOperand RpnGe::calc(const RpnOperand& op1, const RpnOperand& op2) const
+int RpnLe::doCalc(int a, int b) const
 {
+	return a <= b;
 }
 
-RpnOperand RpnLt::calc(const RpnOperand& op1, const RpnOperand& op2) const
+int RpnGe::doCalc(int a, int b) const
 {
+	return a >= b;
+}
+
+int RpnLt::doCalc(int a, int b) const
+{
+	return a < b;
+}
+
+int RpnGt::doCalc(int a, int b) const
+{
+	return a > b;
 }
 
 RpnOperand RpnAssign::calc(const RpnOperand& op1, const RpnOperand& op2) const
-{
-}
-
-RpnOperand RpnGt::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
