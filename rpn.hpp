@@ -10,9 +10,33 @@
 
 using namespace std;
 
+enum RpnT {
+	RPN_NULL,
+	INT,
+	BOOLEAN,
+	STRING,
+	VAR_INT,
+	VAR_BOOLEAN,
+	VAR_STRING,
+	ADDRESS,
+	LABEL,
+	ARGC
+};
+
+RpnT convertType(const Lex& lex);
+bool RpnEqTypes(RpnT type1, RpnT type2);
+
+struct RpnOperand {
+	RpnT type = RpnT::RPN_NULL;
+	int value = 0;
+	RpnOperand() = default;
+	RpnOperand(RpnT a_type, int a_value):
+		type(a_type), value(a_value) {}
+};
+
 struct RpnContext {
-	stack<int> st;
-	int eip;
+	stack<RpnOperand> st;
+	int eip; //изменяется при проходе по массиву RpnOp
 };
 
 class RpnOp {
@@ -29,17 +53,21 @@ class RpnBinOp: public RpnOp {
 public:
 	virtual void execute(RpnContext& context) const override;
 protected:
-	virtual void calc(RpnContext& context) const = 0;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const = 0;
 };
 
 class RpnPut: public RpnOp {
-	LexT type;
+	RpnT type;
 	int value;
 public:
-	RpnPut(LexT a_type = LexT::LEX_NULL, int a_value = 0):
+	RpnPut(RpnT a_type = RpnT::RPN_NULL, int a_value = 0):
 		type(a_type), value(a_value) {}
+	RpnPut(Lex lex):
+		type(convertType(lex)), value(lex.getValue()) {}
+	RpnPut(Lex lex, int a_value):
+		type(convertType(lex)), value(a_value) {}
 	virtual void execute(RpnContext& context) const override;
-	LexT getType() const {return type;}
+	RpnT getType() const {return type;}
 	int getValue() const {return value;}
 protected:
 	virtual void print(ostream& stream) const override;
@@ -54,49 +82,49 @@ protected:
 
 class RpnAdd: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnSub: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnMul: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnDiv: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnMod: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnAnd: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnOr: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
@@ -110,49 +138,49 @@ protected:
 
 class RpnEq: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnNe: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnLe: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnGe: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnLt: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnGt: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };
 
 class RpnAssign: public RpnBinOp {
 public:
-	virtual void calc(RpnContext& context) const override;
+	virtual RpnOperand calc(const RpnOperand& op1, const RpnOperand& op2) const override;
 protected:
 	virtual void print(ostream& stream) const override;
 };

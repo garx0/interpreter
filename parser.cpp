@@ -27,6 +27,11 @@
 using namespace std;
 
 void Parser::checkOp()
+// здесь тип INT|BOOLEAN|STRING имеет значение
+//   "идентификатор соотв. типа",
+// тип CONST_(INT|BOOLEAN|STRING) имеет значение
+//   "константа или выражение соотв. типа"
+// это нужно для проверки совместимости операндов операции =
 {
 	//cout << "********" << __FUNCTION__ << endl; //DEBUG
 	LexT opn, type1, type2;
@@ -123,6 +128,7 @@ void Parser::checkIdent()
 {
 	if(tid[curVal].declared)
 		stType.push(tid[curVal].type);
+		//в стек попало INT|BOOLEAN|STRING
 	else
 		throw "variable wasn't declared";
 }
@@ -197,8 +203,8 @@ void Parser::ntProgram()
 	ntOut; //DEBUG
 }
 
-//любая процедура nt... проверяет на собственную "конструкцию", и
-//после ее выполнения curLex равен первой лексеме после этой конструкции
+// любая процедура nt... проверяет на собственную "конструкцию", и
+// после ее выполнения curLex равен первой лексеме после этой конструкции
 
 void Parser::ntMulDescr()
 {
@@ -241,10 +247,7 @@ void Parser::ntType()
 	ntOut; //DEBUG
 }
 
-void Parser::ntVar() 
-//исп. только для объявления переменной
-//для остальных целей используется лексема-идентификатор
-//процедура возвращает стек таким, каким получила
+void Parser::ntVar()
 {
 	ntIn; //DEBUG
 	int ind = curVal;
@@ -263,13 +266,16 @@ void Parser::ntVar()
 }
 
 void Parser::ntConst()
-//кладет в каждый стек по одному элементу
-//(тип и значение константы в соотв. стек)
+// кладет в каждый стек по одному элементу:
+//   тип CONST_(INT|BOOLEAN|STRING) и значение константы в соотв. стек.
+// после использования этой процедуры необходимо извлечь эти два
+//   значения из стеков, т.к. они нарушают целостность "потока"
+//   в стеке stType для проверки совместимости операндов!
 {
 	ntIn; //DEBUG
 	int num;
 	bool plus = false;
-	if( (plus = curType == LexT::PLUS) || curType == LexT::MINUS ) {
+	if( (plus = curType == LexT::PLUS) || curType == LexT::MINUS) {
 		readLex();
 		if(curType == LexT::CONST_INT) {
 			stVal.push(plus ? curVal : -curVal);
@@ -497,21 +503,6 @@ void Parser::ntExpr()
 	ntOut; //DEBUG
 }
 
-/*
-void Parser::ntExpr()
-{
-	ntIn; //DEBUG
-	ntExpr5();
-	while(curType == LexT::ASSIGN) {
-		stType.push(curType);
-		readLex();
-		ntExpr5();
-		checkOp();
-	}
-	ntOut; //DEBUG
-}
-*/
-
 void Parser::ntExpr5()
 {
 	ntIn; //DEBUG
@@ -582,13 +573,13 @@ void Parser::ntExpr1()
 }
 
 void Parser::ntOperand()
-//заносит в stType тип операнда
+// заносит в stType тип операнда: CONST_(INT|BOOLEAN|STRING)
 {
 	ntIn; //DEBUG
 	switch(curType) {
 		case LexT::IDENT:
 			checkIdent();
-			rpn.push_back(new RpnPut(LexT::IDENT, curVal));
+			rpn.push_back(new RpnPut(curLex));
 			readLex();
 			break;
 		case LexT::PLUS:
@@ -596,13 +587,16 @@ void Parser::ntOperand()
 		case LexT::CONST_INT:
 		case LexT::CONST_BOOLEAN:
 		case LexT::CONST_STRING:
+		{
 			stType.push(curType);
 			ntConst();
 			// ntConst выбросило в каждый стек по значению
-			rpn.push_back(new RpnPut(stType.top(), stVal.top()));
+			Lex infoLex(stType.top(), stVal.top());
+			rpn.push_back(new RpnPut(infoLex));
 			stType.pop();
 			stVal.pop();
 			break;
+		}
 		case LexT::NOT:
 			readLex();
 			ntOperand();

@@ -9,6 +9,52 @@
 
 using namespace std;
 
+RpnT convertType(const Lex& lex)
+// создаёт тип INT|BOOLEAN|STRING или VAR_(INT|BOOLEAN|STRING) из
+//   лексемы
+{
+	LexT type = lex.getType();
+	switch(type) {
+		case LexT::INT:
+		case LexT::CONST_INT:
+			return RpnT::INT;
+		case LexT::BOOLEAN:
+		case LexT::CONST_BOOLEAN:
+			return RpnT::BOOLEAN;
+		case LexT::STRING:
+		case LexT::CONST_STRING:
+			return RpnT::STRING;
+		case LexT::IDENT:
+		{
+			LexT idType = tid[lex.getValue()].type;
+			switch(idType) {
+				case LexT::INT:
+					return RpnT::VAR_INT;
+				case LexT::BOOLEAN:
+					return RpnT::VAR_BOOLEAN;
+				case LexT::STRING:
+					return RpnT::VAR_STRING;
+				default:
+					assert(false);
+			}
+		}	
+		default:
+			assert(false);
+	}
+}
+
+bool RpnEqTypes(RpnT type1, RpnT type2)
+{
+	if(type1 == type2)
+		return true;
+	else if(type1 == RpnT::INT || type1 == RpnT::VAR_INT)
+		return type2 == RpnT::INT || type2 == RpnT::VAR_INT;
+	else if(type1 == RpnT::BOOLEAN || type1 == RpnT::VAR_BOOLEAN)
+		return type2 == RpnT::BOOLEAN || type2 == RpnT::VAR_BOOLEAN;
+	else if(type1 == RpnT::STRING || type1 == RpnT::VAR_STRING)
+		return type2 == RpnT::STRING || type2 == RpnT::VAR_STRING;
+}
+	
 ostream& operator<<(ostream& stream, const RpnOp& op)
 {
 	op.print(stream);
@@ -18,16 +64,18 @@ ostream& operator<<(ostream& stream, const RpnOp& op)
 void RpnPut::print(ostream& stream) const
 {
 	switch(type) {
-		case LexT::IDENT:
+		case RpnT::VAR_INT:
+		case RpnT::VAR_BOOLEAN:
+		case RpnT::VAR_STRING:
 			stream << tid[value].name;
 			break;
-		case LexT::INT:
+		case RpnT::INT:
 			stream << value;
 			break;
-		case LexT::BOOLEAN:
+		case RpnT::BOOLEAN:
 			stream << (value ? "true" : "false");
 			break;
-		case LexT::STRING:
+		case RpnT::STRING:
 			stream << "\"" << tstr[value] << "\"";
 			break;
 		default:
@@ -157,41 +205,50 @@ void RpnWrite::print(ostream& stream) const
 
 void RpnBinOp::execute(RpnContext& context) const
 {
+	RpnOperand op1, op2, res;
+	op2 = context.st.top();
+	context.st.pop();
+	op1 = context.st.top();
+	context.st.pop();
+	res = calc(op1, op2);
+	context.st.push(res);
 }
 
 void RpnPut::execute(RpnContext& context) const
 {
+	context.st.push(RpnOperand(type, value));
 }
 
 void RpnSemicolon::execute(RpnContext& context) const
 {
+	context.st.pop();
 }
 
-void RpnAdd::calc(RpnContext& context) const
+RpnOperand RpnAdd::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnSub::calc(RpnContext& context) const
+RpnOperand RpnSub::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnMul::calc(RpnContext& context) const
+RpnOperand RpnMul::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnDiv::calc(RpnContext& context) const
+RpnOperand RpnDiv::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnMod::calc(RpnContext& context) const
+RpnOperand RpnMod::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnAnd::calc(RpnContext& context) const
+RpnOperand RpnAnd::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnOr::calc(RpnContext& context) const
+RpnOperand RpnOr::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
@@ -199,31 +256,31 @@ void RpnNot::execute(RpnContext& context) const
 {
 }
 
-void RpnEq::calc(RpnContext& context) const
+RpnOperand RpnEq::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnNe::calc(RpnContext& context) const
+RpnOperand RpnNe::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnLe::calc(RpnContext& context) const
+RpnOperand RpnLe::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnGe::calc(RpnContext& context) const
+RpnOperand RpnGe::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnLt::calc(RpnContext& context) const
+RpnOperand RpnLt::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnAssign::calc(RpnContext& context) const
+RpnOperand RpnAssign::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 
-void RpnGt::calc(RpnContext& context) const
+RpnOperand RpnGt::calc(const RpnOperand& op1, const RpnOperand& op2) const
 {
 }
 

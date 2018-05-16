@@ -69,6 +69,5 @@ int main(int argc, const char** argv) {
 		}
 		cout << endl;
 	}
-	int q = 0;
 	return 0;
 }
